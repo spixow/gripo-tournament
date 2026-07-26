@@ -42,6 +42,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             log_activity('admin_password', 'Mot de passe modifié pour ' . $target['display_name'] . ' (' . $target['username'] . ')');
             flash('success', 'Mot de passe mis à jour pour ' . $target['display_name'] . '.');
         }
+    } elseif ($action === 'add_player') {
+        $display = trim($_POST['display_name'] ?? '');
+        $username = preg_replace('/[^a-z0-9]/', '', strtolower(trim($_POST['username'] ?? '')));
+        $pass  = $_POST['new_password'] ?? '';
+        $color = trim($_POST['avatar_color'] ?? '');
+        $team  = trim($_POST['team'] ?? '');
+        if (!preg_match('/^#[0-9a-fA-F]{6}$/', $color)) {
+            $color = sprintf('#%02x%02x%02x', random_int(40, 220), random_int(40, 220), random_int(40, 220));
+        }
+        if ($display === '' || $username === '') {
+            flash('danger', "Le nom et l'identifiant sont obligatoires.");
+        } elseif (strlen($pass) < 6) {
+            flash('danger', 'Le mot de passe doit contenir au moins 6 caractères.');
+        } else {
+            $exists = db()->prepare('SELECT COUNT(*) FROM players WHERE username = ?');
+            $exists->execute([$username]);
+            if ((int)$exists->fetchColumn() > 0) {
+                flash('danger', "L'identifiant « $username » est déjà utilisé.");
+            } else {
+                ensure_team_column();
+                db()->prepare('INSERT INTO players (username, display_name, password_hash, avatar_color, team, is_admin) VALUES (?, ?, ?, ?, ?, 0)')
+                    ->execute([$username, $display, password_hash($pass, PASSWORD_DEFAULT), $color, $team !== '' ? mb_substr($team, 0, 60) : null]);
+                log_activity('add_player', "Joueur ajouté : $display ($username)");
+                flash('success', "Joueur « $display » créé (identifiant : $username).");
+            }
+        }
     } elseif ($action === 'toggle_admin') {
         $pid = (int)($_POST['player_id'] ?? 0);
         $target = get_player($pid);
@@ -480,6 +506,43 @@ require __DIR__ . '/includes/header.php';
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- ============ Ajouter un joueur ============ -->
+<div class="glass mt-4">
+    <div class="card-header-fifa">➕ Ajouter un joueur</div>
+    <div class="p-3">
+        <form method="post" class="row g-2 align-items-end">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="add_player">
+            <div class="col-12 col-md-3">
+                <label class="form-label small mb-1">Nom affiché *</label>
+                <input type="text" name="display_name" class="form-control" maxlength="80" placeholder="ex : Karim" required>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">Identifiant *</label>
+                <input type="text" name="username" class="form-control" maxlength="50" placeholder="ex : karim" required>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">Mot de passe *</label>
+                <input type="text" name="new_password" class="form-control" minlength="6" placeholder="6 car. min." required>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">Équipe</label>
+                <input type="text" name="team" class="form-control" maxlength="60" placeholder="ex : PSG">
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1">Couleur</label>
+                <input type="color" name="avatar_color" class="form-control form-control-color" value="#00a15a" title="Couleur de l'avatar">
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-fifa">Créer le joueur</button>
+            </div>
+            <div class="col-12">
+                <span class="text-secondary small">L'identifiant est mis en minuscules sans espaces. Le nouveau joueur pourra se connecter immédiatement.</span>
+            </div>
+        </form>
     </div>
 </div>
 

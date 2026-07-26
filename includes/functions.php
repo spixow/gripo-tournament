@@ -648,6 +648,7 @@ function activity_label(string $action): array
         'settings'        => ['Réglages', 'primary'],
         'tournament_reset'=> ['Tournoi réinitialisé', 'danger'],
         'set_team'        => ['Équipe assignée', 'info'],
+        'add_player'      => ['Joueur ajouté', 'success'],
         default           => [ucfirst($action), 'secondary'],
     };
 }
