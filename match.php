@@ -13,10 +13,14 @@ $user = current_user();
 $isParticipant = $user && !$user['is_admin'] && ($user['id'] == $match['home_id'] || $user['id'] == $match['away_id']);
 $submissions = submissions_of_match($matchId);
 $mySubmission = $user ? ($submissions[$user['id']] ?? null) : null;
+$deadlinePassed = new DateTime() > new DateTime(APP_DEADLINE . ' ' . APP_DEADLINE_TIME);
 
 /* -------------------- Traitement du formulaire -------------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isParticipant && $match['status'] !== 'completed') {
     try {
+        if ($deadlinePassed) {
+            throw new RuntimeException("La deadline du tournoi est dépassée : seul l'administrateur peut désormais saisir le score.");
+        }
         if (!csrf_check($_POST['csrf'] ?? null)) {
             throw new RuntimeException('Jeton de sécurité invalide.');
         }
@@ -140,7 +144,7 @@ require __DIR__ . '/includes/header.php';
 <div class="row g-4">
     <!-- Saisie du score -->
     <div class="col-lg-6">
-        <?php if ($isParticipant && $match['status'] !== 'completed'): ?>
+        <?php if ($isParticipant && $match['status'] !== 'completed' && !$deadlinePassed): ?>
             <div class="glass">
                 <div class="card-header-fifa">📝 Saisir le score</div>
                 <div class="p-4">
@@ -183,6 +187,16 @@ require __DIR__ . '/includes/header.php';
                 <div class="display-6 mb-2">🏁</div>
                 <h4>Match terminé</h4>
                 <p class="text-secondary mb-0">Résultat validé par les deux joueurs.</p>
+            </div>
+        <?php elseif ($isParticipant && $deadlinePassed): ?>
+            <div class="glass p-4 text-center">
+                <div class="display-6 mb-2">⏳</div>
+                <h5>Deadline dépassée</h5>
+                <p class="text-secondary mb-0">
+                    La saisie des scores par les joueurs est close.
+                    Seul l'administrateur peut désormais enregistrer le résultat de ce match.
+                    Ouvre une réclamation ci-dessous si besoin.
+                </p>
             </div>
         <?php else: ?>
             <div class="glass p-4 text-center">
@@ -281,7 +295,7 @@ if ($isParticipant):
 </div>
 <?php endif; ?>
 
-<?php if ($isParticipant && $match['status'] !== 'completed'): ?>
+<?php if ($isParticipant && $match['status'] !== 'completed' && !$deadlinePassed): ?>
 <script>
 (function () {
     var form = document.getElementById('score-form');
