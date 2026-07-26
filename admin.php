@@ -337,13 +337,36 @@ require __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<div class="glass">
-    <div class="card-header-fifa">📋 Tous les matchs — saisie directe</div>
+<div class="glass" id="matchs">
+    <?php
+    $mstatus = $_GET['mstatus'] ?? '';
+    $validStatuses = ['pending', 'awaiting', 'disputed', 'completed'];
+    if (!in_array($mstatus, $validStatuses, true)) { $mstatus = ''; }
+    // Comptes par statut
+    $counts = ['' => count($allMatches), 'pending' => 0, 'awaiting' => 0, 'disputed' => 0, 'completed' => 0];
+    foreach ($allMatches as $mm) { $counts[$mm['status']] = ($counts[$mm['status']] ?? 0) + 1; }
+    $filteredMatches = $mstatus ? array_values(array_filter($allMatches, fn($m) => $m['status'] === $mstatus)) : $allMatches;
+    $qsActivity = $activityFilter ? '&activity_player=' . (int)$activityFilter : '';
+    $filters = ['' => 'Tous', 'pending' => 'À jouer', 'awaiting' => 'En attente', 'disputed' => 'Litige', 'completed' => 'Terminé'];
+    ?>
+    <div class="card-header-fifa">
+        📋 Tous les matchs — saisie directe
+        <div class="btn-group btn-group-sm ms-auto flex-wrap" role="group">
+            <?php foreach ($filters as $val => $lbl): ?>
+                <a href="admin.php?mstatus=<?= e($val) ?><?= $qsActivity ?>#matchs"
+                   class="btn <?= $mstatus === $val ? 'btn-fifa' : 'btn-outline-info' ?>">
+                    <?= e($lbl) ?> <span class="badge text-bg-dark"><?= (int)($counts[$val] ?? 0) ?></span>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
     <div class="table-responsive">
         <table class="table table-fifa mb-0 align-middle">
             <thead><tr><th>R</th><th>Match</th><th class="text-center">Saisir le score</th><th class="text-center">Statut</th><th class="text-end">Actions</th></tr></thead>
             <tbody>
-            <?php foreach ($allMatches as $m): [$lbl,$col]=status_label($m['status']); ?>
+            <?php if (empty($filteredMatches)): ?>
+                <tr><td colspan="5" class="text-center text-secondary py-3">Aucun match avec ce statut.</td></tr>
+            <?php else: foreach ($filteredMatches as $m): [$lbl,$col]=status_label($m['status']); ?>
                 <tr>
                     <td>R<?= (int)$m['round'] ?></td>
                     <td><?= e($m['home_name']) ?> <span class="vs-badge">vs</span> <?= e($m['away_name']) ?></td>
@@ -371,7 +394,7 @@ require __DIR__ . '/includes/header.php';
                         </form>
                     </td>
                 </tr>
-            <?php endforeach; ?>
+            <?php endforeach; endif; ?>
             </tbody>
         </table>
     </div>
