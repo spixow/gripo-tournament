@@ -1,0 +1,19 @@
+# Secrets / identifiants — NE JAMAIS committer
+github
+*.token
+.env
+.env.*
+
+# Fichiers d'installation/upgrade contenant des identifiants générés
+# (laisser dans le repo si souhaité, sinon décommenter)
+# install.php
+# upgrade.php
+
+# Preuves uploadées par les joueurs
+uploads/*
+!uploads/.htaccess
+
+# Divers
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,666 @@
+/* =========================================================
+   TOURNOI FIFA 1v1 — Thème EA SPORTS FC 26 (clair)
+   Fond clair lumineux + vert terrain + accents dynamiques
+   ========================================================= */
+
+:root {
+    /* Surfaces */
+    --bg-0: #eef4f0;
+    --bg-1: #ffffff;
+    --bg-2: #e1ebe5;
+    --surface: rgba(255, 255, 255, .86);
+    --surface-solid: #ffffff;
+    --line: #cfddd4;
+    --line-soft: rgba(90, 130, 108, .22);
+
+    /* Accents EA FC */
+    --cyan: #06a15a;   /* vert signature (accent primaire, lisible sur clair) */
+    --blue: #2f7df6;   /* bleu accent (barrages) */
+    --indigo: #0ea5e9;
+    --gold: #d99a00;   /* or FC */
+    --pink: #e11d48;
+    --green: #10b981;
+
+    /* Texte */
+    --txt: #10231b;
+    --muted: #5b6f65;
+    --faint: #869a90;
+
+    /* Effets */
+    --radius: 18px;
+    --radius-sm: 12px;
+    --shadow: 0 16px 40px -18px rgba(16, 45, 30, .28);
+    --glow-cyan: 0 0 0 1px rgba(6, 161, 90, .25), 0 12px 28px -12px rgba(6, 161, 90, .4);
+    --grad: linear-gradient(135deg, #12c06a, #06a15a);
+    --grad-soft: linear-gradient(135deg, rgba(6, 161, 90, .12), rgba(6, 161, 90, .03));
+    --ease: cubic-bezier(.22, 1, .36, 1);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+    margin: 0;
+    background: var(--bg-0);
+    color: var(--txt);
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, .display-font {
+    font-family: "Rajdhani", "Inter", sans-serif;
+    letter-spacing: .5px;
+}
+
+a { text-decoration: none; }
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-0); }
+::-webkit-scrollbar-thumb { background: #b9cdc1; border-radius: 10px; border: 2px solid var(--bg-0); }
+::-webkit-scrollbar-thumb:hover { background: #98b6a6; }
+
+/* --- Fond Three.js + voile --- */
+#bg-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    width: 100%;
+    height: 100%;
+    opacity: .32;
+}
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+        radial-gradient(1100px 520px at 50% -8%, rgba(6, 161, 90, .12), transparent 60%),
+        radial-gradient(900px 500px at 90% 10%, rgba(47, 125, 246, .08), transparent 55%),
+        linear-gradient(180deg, rgba(238, 244, 240, .55), rgba(238, 244, 240, .9));
+    pointer-events: none;
+}
+
+/* =========================================================
+   NAVBAR
+   ========================================================= */
+.navbar-fifa {
+    background: rgba(255, 255, 255, .82) !important;
+    backdrop-filter: blur(16px) saturate(140%);
+    border-bottom: 1px solid var(--line-soft);
+    padding-top: .7rem;
+    padding-bottom: .7rem;
+    box-shadow: 0 6px 20px -14px rgba(16, 45, 30, .5);
+}
+.navbar-brand {
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 800;
+    font-size: 1.35rem;
+    letter-spacing: 1px;
+    background: linear-gradient(90deg, #06a15a, #0a7d46);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.navbar-nav { gap: .15rem; }
+.nav-link {
+    color: var(--muted) !important;
+    font-weight: 600;
+    font-size: .93rem;
+    padding: .5rem .9rem !important;
+    border-radius: 10px;
+    transition: color .2s var(--ease), background .2s var(--ease);
+}
+.nav-link:hover { color: var(--txt) !important; background: rgba(6, 161, 90, .08); }
+.nav-link.active {
+    color: #ffffff !important;
+    background: var(--grad);
+    box-shadow: 0 6px 18px -6px rgba(6, 161, 90, .5);
+}
+.navbar-toggler { border-color: var(--line); padding: .3rem .5rem; }
+.navbar-toggler:focus { box-shadow: none; }
+
+/* =========================================================
+   CARTES / SURFACES
+   ========================================================= */
+.glass {
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+.card-header-fifa {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    position: relative;
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 700;
+    font-size: 1.02rem;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--line-soft);
+    background: var(--grad-soft);
+    color: var(--txt);
+}
+.card-header-fifa::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--grad);
+}
+
+/* =========================================================
+   HERO
+   ========================================================= */
+.hero-title {
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 0 32px rgba(0, 255, 135, .3);
+}
+.hero-sub {
+    color: var(--cyan);
+    font-weight: 700;
+    font-size: .78rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+}
+
+/* =========================================================
+   AVATARS
+   ========================================================= */
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 800;
+    color: #0c2018;
+    flex: 0 0 auto;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .45), 0 4px 10px -4px rgba(16, 45, 30, .4);
+}
+
+/* =========================================================
+   TABLE CLASSEMENT
+   ========================================================= */
+.table-fifa { color: var(--txt); margin-bottom: 0; }
+.table-fifa th {
+    color: var(--faint);
+    text-transform: uppercase;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    border-color: var(--line-soft) !important;
+    padding: .85rem .75rem;
+    position: sticky;
+    top: 0;
+    background: var(--surface-solid);
+    z-index: 2;
+}
+.table-fifa td {
+    border-color: var(--line-soft) !important;
+    vertical-align: middle;
+    padding: .7rem .75rem;
+}
+.table-fifa tbody tr { transition: background .18s var(--ease); }
+.table-fifa tbody tr:hover { background: rgba(6, 161, 90, .08); }
+.rank-badge {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 700;
+    font-size: .95rem;
+}
+.qual-direct { box-shadow: inset 3px 0 0 var(--green); }
+.qual-playoff { box-shadow: inset 3px 0 0 var(--blue); }
+.qual-out { box-shadow: inset 3px 0 0 transparent; }
+
+/* =========================================================
+   CARTES MATCH
+   ========================================================= */
+.match-card {
+    background: rgba(255, 255, 255, .9);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-sm);
+    transition: transform .18s var(--ease), border-color .18s var(--ease), box-shadow .18s var(--ease);
+}
+a:hover > .match-card,
+.match-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(6, 161, 90, .55);
+    box-shadow: var(--glow-cyan);
+}
+.vs-badge {
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 800;
+    color: var(--gold);
+    letter-spacing: 1.5px;
+}
+.score-pill {
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: 1px;
+    background: rgba(6, 161, 90, .1);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: .12rem .8rem;
+    color: var(--txt);
+}
+
+/* =========================================================
+   BOUTONS
+   ========================================================= */
+.btn {
+    border-radius: 11px;
+    font-weight: 600;
+    transition: transform .15s var(--ease), filter .15s var(--ease), box-shadow .15s var(--ease);
+}
+.btn:active { transform: translateY(1px); }
+.btn-fifa {
+    background: var(--grad);
+    border: none;
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: .4px;
+    box-shadow: 0 8px 22px -10px rgba(6, 161, 90, .7);
+}
+.btn-fifa:hover { filter: brightness(1.06); color: #ffffff; transform: translateY(-1px); }
+.btn-outline-light { border-color: var(--line); color: var(--txt); }
+.btn-outline-light:hover { background: rgba(16, 35, 27, .06); border-color: var(--muted); color: var(--txt); }
+.btn-outline-info { color: var(--cyan); border-color: rgba(6, 161, 90, .45); }
+.btn-outline-info:hover { background: rgba(6, 161, 90, .12); color: var(--cyan); border-color: var(--cyan); }
+
+/* =========================================================
+   FORMULAIRES (thème clair cohérent)
+   ========================================================= */
+.form-control, .form-select {
+    background: #ffffff;
+    border: 1px solid var(--line);
+    color: var(--txt);
+    border-radius: 11px;
+    padding: .6rem .85rem;
+    transition: border-color .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease);
+}
+.form-control::placeholder { color: var(--faint); }
+.form-control:focus, .form-select:focus {
+    background: #ffffff;
+    border-color: var(--cyan);
+    color: var(--txt);
+    box-shadow: 0 0 0 3px rgba(6, 161, 90, .18);
+}
+.form-control[type="file"] { padding: .5rem .85rem; }
+.form-control[type="file"]::file-selector-button {
+    background: var(--bg-2);
+    color: var(--txt);
+    border: 0;
+    border-radius: 8px;
+    padding: .35rem .8rem;
+    margin-right: .8rem;
+    cursor: pointer;
+    transition: background .15s var(--ease);
+}
+.form-control[type="file"]::file-selector-button:hover { background: #cfe1d7; }
+.form-label { color: var(--muted); font-weight: 600; font-size: .85rem; margin-bottom: .35rem; }
+.form-text { color: var(--faint); }
+
+/* =========================================================
+   BADGES / ALERTES
+   ========================================================= */
+.badge { font-weight: 600; letter-spacing: .3px; padding: .4em .65em; border-radius: 8px; }
+.alert { border-radius: var(--radius-sm); border: 1px solid transparent; }
+.alert-success { background: rgba(16, 185, 129, .14); border-color: rgba(16, 185, 129, .4); color: #0a7d46; }
+.alert-danger  { background: rgba(225, 29, 72, .12); border-color: rgba(225, 29, 72, .38); color: #b3163a; }
+.alert-warning { background: rgba(217, 154, 0, .14); border-color: rgba(217, 154, 0, .4); color: #8a6200; }
+.alert-info    { background: rgba(47, 125, 246, .12); border-color: rgba(47, 125, 246, .38); color: #1d4ed8; }
+
+/* =========================================================
+   DIVERS
+   ========================================================= */
+.proof-thumb {
+    max-width: 100%;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+    transition: transform .2s var(--ease), border-color .2s var(--ease);
+}
+.proof-thumb:hover { transform: scale(1.02); border-color: var(--cyan); }
+
+.deadline-chip {
+    background: rgba(225, 29, 72, .1);
+    border: 1px solid rgba(225, 29, 72, .32);
+    color: #c81e4a;
+    border-radius: 999px;
+    padding: .3rem .85rem;
+    font-weight: 700;
+    font-size: .8rem;
+    white-space: nowrap;
+}
+
+footer.fifa-footer {
+    border-top: 1px solid var(--line-soft);
+    color: var(--faint);
+    margin-top: 3.5rem;
+    padding: 1.75rem 0;
+    text-align: center;
+    font-size: .82rem;
+}
+footer.fifa-footer strong { color: var(--muted); }
+
+/* Text helpers alignés sur la palette */
+.text-secondary { color: var(--muted) !important; }
+.text-light { color: var(--txt) !important; }
+
+/* Icône du menu mobile (sombre sur navbar claire) */
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(16,45,30,0.75)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* =========================================================
+   ANIMATIONS
+   ========================================================= */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+main > *, .glass { animation: fadeUp .5s var(--ease) both; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* =========================================================
+   CHAMPION (phase finale)
+   ========================================================= */
+.champion-avatar {
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 800;
+    font-size: 2.6rem;
+    color: #04140c;
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,.25), 0 0 0 4px rgba(251,207,64,.5), 0 10px 30px -8px rgba(251,207,64,.6);
+}
+
+/* =========================================================
+   CLASSEMENT — PODIUM
+   ========================================================= */
+.podium {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr 1fr;
+    align-items: end;
+    gap: 1rem;
+    max-width: 640px;
+    margin: 0 auto 1.5rem;
+}
+.podium-item {
+    position: relative;
+    text-align: center;
+    border-radius: 16px 16px 0 0;
+    padding: 1rem .75rem .9rem;
+    background: rgba(255, 255, 255, .9);
+    border: 1px solid var(--line-soft);
+    border-bottom: none;
+    overflow: hidden;
+    transition: transform .2s var(--ease);
+    box-shadow: 0 10px 26px -16px rgba(16, 45, 30, .4);
+}
+.podium-item:hover { transform: translateY(-4px); }
+.podium-item::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+}
+.podium-1 { padding-top: 1.6rem; }
+.podium-1::before { background: linear-gradient(90deg, #ffe08a, #f2b705); }
+.podium-2::before { background: linear-gradient(90deg, #e7edf2, #aab6bf); }
+.podium-3::before { background: linear-gradient(90deg, #f0b98a, #b9743e); }
+.podium-medal { font-size: 1.5rem; line-height: 1; }
+.podium-1 .podium-medal { font-size: 2rem; }
+.podium-avatar {
+    width: 58px; height: 58px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Rajdhani", sans-serif; font-weight: 800; font-size: 1.5rem;
+    color: #0c2018;
+    margin: .5rem auto .4rem;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.45), 0 6px 14px -6px rgba(16,45,30,.5);
+}
+.podium-1 .podium-avatar { width: 72px; height: 72px; font-size: 1.9rem; }
+.podium-name {
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 700; font-size: 1.05rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.podium-pts {
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 800; font-size: 1.4rem; color: var(--cyan); line-height: 1;
+}
+.podium-pts small { font-size: .7rem; color: var(--muted); font-weight: 600; letter-spacing: .5px; }
+.podium-base {
+    margin-top: .6rem;
+    font-family: "Rajdhani", sans-serif; font-weight: 800; font-size: 2rem;
+    color: rgba(16, 45, 30, .12);
+}
+
+/* =========================================================
+   CLASSEMENT — TABLE ENRICHIE
+   ========================================================= */
+.rank-medal {
+    width: 30px; height: 30px; border-radius: 9px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Rajdhani", sans-serif; font-weight: 800; font-size: .95rem;
+    background: rgba(16, 45, 30, .07); color: var(--muted);
+}
+.rank-medal.gold   { background: linear-gradient(135deg,#ffe08a,#e0a500); color:#3a2a00; }
+.rank-medal.silver { background: linear-gradient(135deg,#eef2f5,#aab6bf); color:#232b31; }
+.rank-medal.bronze { background: linear-gradient(135deg,#f0b98a,#b9743e); color:#2a1608; }
+
+.wdl { display: inline-flex; gap: .25rem; }
+.wdl b {
+    min-width: 24px; text-align: center;
+    font-family: "Rajdhani", sans-serif; font-weight: 800; font-size: .82rem;
+    padding: .1rem .1rem; border-radius: 6px;
+}
+.wdl .w { background: rgba(16,217,143,.18); color: var(--green); }
+.wdl .d { background: rgba(251,191,36,.18); color: var(--gold); }
+.wdl .l { background: rgba(244,63,94,.18); color: var(--pink); }
+
+.form-dots { display: inline-flex; gap: .22rem; }
+.fd {
+    width: 20px; height: 20px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: .66rem; font-weight: 800; font-family: "Rajdhani", sans-serif;
+    color: #04140c;
+}
+.fd-w { background: var(--green); }
+.fd-d { background: var(--gold); }
+.fd-l { background: var(--pink); color: #fff; }
+.fd-none { background: rgba(16, 45, 30, .08); color: var(--faint); }
+
+.pts-big {
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 800; font-size: 1.5rem; line-height: 1; color: var(--cyan);
+}
+.gd-chip {
+    font-family: "Rajdhani", sans-serif; font-weight: 700;
+    padding: .05rem .45rem; border-radius: 6px; font-size: .82rem;
+}
+.gd-pos { background: rgba(16,185,129,.15); color: #0a7d46; }
+.gd-neg { background: rgba(225,29,72,.14); color: var(--pink); }
+.gd-zero { background: rgba(16, 45, 30, .07); color: var(--muted); }
+
+.qz { box-shadow: inset 4px 0 0 transparent; }
+.qz-direct { box-shadow: inset 4px 0 0 var(--gold); }
+.qz-playoff { box-shadow: inset 4px 0 0 var(--blue); }
+
+.legend-dot { display:inline-block; width:11px; height:11px; border-radius:3px; vertical-align:middle; }
+
+/* --- Lignes du classement en barres élégantes --- */
+.standings-table {
+    border-collapse: separate;
+    border-spacing: 0 .55rem;
+    margin-bottom: 0;
+}
+.standings-table thead th {
+    position: static;
+    background: transparent !important;
+    border: none !important;
+    padding-bottom: .2rem;
+}
+.standings-table tbody td {
+    background: #ffffff;
+    border-top: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
+    padding: .7rem .75rem;
+    vertical-align: middle;
+}
+.standings-table tbody td:first-child {
+    border-left: 1px solid var(--line-soft);
+    border-radius: 12px 0 0 12px;
+}
+.standings-table tbody td:last-child {
+    border-right: 1px solid var(--line-soft);
+    border-radius: 0 12px 12px 0;
+}
+.standings-table tbody tr { transition: transform .16s var(--ease); }
+.standings-table tbody tr:hover { transform: translateX(3px); }
+.standings-table tbody tr:hover td { background: rgba(6, 161, 90, .08); }
+
+/* Accents de zone sur la barre */
+.standings-table tr.qz-direct td:first-child  { box-shadow: inset 5px 0 0 var(--gold); }
+.standings-table tr.qz-playoff td:first-child { box-shadow: inset 5px 0 0 var(--blue); }
+
+/* Mise en avant du podium */
+.standings-table tr.row-1 td { background: linear-gradient(90deg, rgba(217,154,0,.14), #ffffff 45%); }
+.standings-table tr.row-2 td { background: linear-gradient(90deg, rgba(148,163,175,.14), #ffffff 45%); }
+.standings-table tr.row-3 td { background: linear-gradient(90deg, rgba(185,116,62,.14), #ffffff 45%); }
+.standings-table tr.row-1:hover td,
+.standings-table tr.row-2:hover td,
+.standings-table tr.row-3:hover td { filter: brightness(.99); }
+
+/* =========================================================
+   BRACKET — PHASE FINALE
+   ========================================================= */
+.bracket-wrap {
+    display: flex;
+    gap: 1.5rem;
+    align-items: stretch;
+    justify-content: center;
+    overflow-x: auto;
+    padding-bottom: .5rem;
+}
+.bracket-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: 1.2rem;
+    min-width: 230px;
+    flex: 1;
+}
+.bracket-col-title {
+    text-align: center;
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--cyan);
+    font-size: .8rem;
+    margin-bottom: .3rem;
+}
+.bk-match {
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: .5rem;
+    position: relative;
+    box-shadow: 0 8px 20px -16px rgba(16, 45, 30, .5);
+}
+.bk-label {
+    font-size: .66rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--faint);
+    padding: 0 .3rem .35rem;
+}
+.bk-side {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .4rem .5rem;
+    border-radius: 8px;
+    transition: background .15s var(--ease);
+}
+.bk-side + .bk-side { margin-top: .25rem; }
+.bk-name {
+    flex: 1;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--muted);
+}
+.bk-score {
+    font-family: "Rajdhani", sans-serif;
+    font-weight: 800;
+    font-size: 1.05rem;
+    min-width: 20px;
+    text-align: center;
+    color: var(--txt);
+}
+.bk-side.bk-win {
+    background: rgba(6, 161, 90, .14);
+    box-shadow: inset 3px 0 0 var(--green);
+}
+.bk-side.bk-win .bk-name { color: var(--txt); }
+.bk-side.bk-win .bk-score { color: var(--green); }
+
+.champion-banner {
+    background:
+        radial-gradient(600px 200px at 50% 0%, rgba(251, 207, 64, .18), transparent 70%),
+        var(--surface);
+    border-color: rgba(251, 207, 64, .4);
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+@media (max-width: 768px) {
+    body { font-size: 14px; }
+    .navbar-nav { gap: .1rem; padding: .5rem 0; }
+    .nav-link { padding: .55rem .75rem !important; }
+    .card-header-fifa { font-size: .92rem; padding: .85rem 1rem; }
+    .hero-title.display-5 { font-size: 2rem; }
+    .score-pill { font-size: 1rem; }
+    .deadline-chip { font-size: .72rem; padding: .25rem .6rem; }
+    .bracket-wrap { gap: 1rem; }
+    .bracket-col { min-width: 200px; }
+    .podium { max-width: 100%; gap: .5rem; }
+    .podium-avatar { width: 48px; height: 48px; font-size: 1.2rem; }
+    .podium-1 .podium-avatar { width: 58px; height: 58px; }
+}
