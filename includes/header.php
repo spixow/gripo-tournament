@@ -2,8 +2,9 @@
 require_once __DIR__ . '/functions.php';
 $currentUser = current_user();
 $page = $page ?? '';
-$daysLeft = (new DateTime())->diff(new DateTime(APP_DEADLINE))->days;
-$deadlinePassed = new DateTime() > new DateTime(APP_DEADLINE);
+$deadlineDT = new DateTime(APP_DEADLINE . ' ' . (defined('APP_DEADLINE_TIME') ? APP_DEADLINE_TIME : '00:00:00'));
+$daysLeft = (new DateTime())->diff($deadlineDT)->days;
+$deadlinePassed = new DateTime() > $deadlineDT;
 $navPending = ($currentUser && empty($currentUser['is_admin']))
     ? pending_matches_count((int)$currentUser['id']) : 0;
 ?>
@@ -43,6 +44,14 @@ $navPending = ($currentUser && empty($currentUser['is_admin']))
                             <?php if ($navPending > 0): ?>
                                 <span class="nav-pending-badge" title="<?= (int)$navPending ?> match(s) à jouer"><?= (int)$navPending ?></span>
                             <?php endif; ?>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link position-relative <?= $page==='claims'?'active':'' ?>" href="claims.php">
+                            Réclamations
+                            <?php if ($currentUser['is_admin']): $oc = open_claims_count(); if ($oc > 0): ?>
+                                <span class="nav-pending-badge" title="<?= (int)$oc ?> réclamation(s) active(s)"><?= (int)$oc ?></span>
+                            <?php endif; endif; ?>
                         </a>
                     </li>
                 <?php endif; ?>

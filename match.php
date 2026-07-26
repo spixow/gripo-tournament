@@ -26,10 +26,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isParticipant && $match['status'] 
             throw new RuntimeException('Scores invalides (entiers entre 0 et 99).');
         }
 
-        // Preuve image : facultative
+        // Preuve image : obligatoire uniquement pour le vainqueur déclaré
         $proof = handle_proof_upload('proof');
         if (!$proof && $mySubmission) {
             $proof = $mySubmission['proof_image']; // conserver l'ancienne si non renvoyée
+        }
+        $submitterIsHome = (int)$user['id'] === (int)$match['home_id'];
+        $submitterGoals  = $submitterIsHome ? $hs : $as;
+        $opponentGoals   = $submitterIsHome ? $as : $hs;
+        if ($submitterGoals > $opponentGoals && !$proof) {
+            throw new RuntimeException("En tant que vainqueur déclaré, une preuve image du score final est obligatoire.");
         }
 
         $pdo = db();
@@ -144,27 +150,29 @@ require __DIR__ . '/includes/header.php';
                             Vous pouvez corriger votre saisie ci-dessous.
                         </div>
                     <?php endif; ?>
-                    <form method="post" enctype="multipart/form-data">
+                    <form method="post" enctype="multipart/form-data" id="score-form"
+                          data-myside="<?= (int)$user['id'] === (int)$match['home_id'] ? 'home' : 'away' ?>">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <div class="row g-3 align-items-end">
                             <div class="col">
                                 <label class="form-label small"><?= e($match['home_name']) ?></label>
-                                <input type="number" min="0" max="99" name="home_score" class="form-control form-control-lg text-center"
+                                <input type="number" min="0" max="99" name="home_score" id="fld-home" class="form-control form-control-lg text-center"
                                        value="<?= $mySubmission ? (int)$mySubmission['home_score'] : '' ?>" required>
                             </div>
                             <div class="col-auto pb-2"><span class="vs-badge">–</span></div>
                             <div class="col">
                                 <label class="form-label small"><?= e($match['away_name']) ?></label>
-                                <input type="number" min="0" max="99" name="away_score" class="form-control form-control-lg text-center"
+                                <input type="number" min="0" max="99" name="away_score" id="fld-away" class="form-control form-control-lg text-center"
                                        value="<?= $mySubmission ? (int)$mySubmission['away_score'] : '' ?>" required>
                             </div>
                         </div>
                         <div class="mt-3">
                             <label class="form-label small">Preuve image (capture du score final)
-                                <span class="text-secondary">(facultatif)</span>
+                                <span id="proof-hint" class="text-secondary">(facultatif)</span>
                             </label>
-                            <input type="file" name="proof" accept="image/png,image/jpeg,image/webp" class="form-control">
-                            <div class="form-text">JPG, PNG ou WEBP — 5 Mo max. Recommandé en cas de litige.</div>
+                            <input type="file" name="proof" id="fld-proof" accept="image/png,image/jpeg,image/webp" class="form-control"
+                                   <?= $mySubmission && $mySubmission['proof_image'] ? '' : '' ?>>
+                            <div class="form-text">JPG, PNG ou WEBP — 5 Mo max. <strong>Obligatoire si vous êtes le vainqueur.</strong></div>
                         </div>
                         <button class="btn btn-fifa w-100 mt-3 py-2">Envoyer mon score →</button>
                     </form>
@@ -241,5 +249,71 @@ require __DIR__ . '/includes/header.php';
         </div>
     </div>
 </div>
+
+<?php
+// Réclamation : accessible aux 2 joueurs du match
+$existingClaim = open_claim_for_match($matchId);
+if ($isParticipant):
+?>
+<div class="glass mt-4">
+    <div class="card-header-fifa">🚩 Réclamation</div>
+    <div class="p-4">
+        <?php if ($existingClaim): ?>
+            <?php [$clbl, $ccol] = claim_status_label($existingClaim['status']); ?>
+            <p class="mb-2">Une réclamation est déjà ouverte pour ce match
+                (<span class="badge text-bg-<?= $ccol ?>"><?= e($clbl) ?></span>).</p>
+            <a href="claim.php?id=<?= (int)$existingClaim['id'] ?>" class="btn btn-fifa">💬 Ouvrir la discussion</a>
+        <?php else: ?>
+            <p class="text-secondary small mb-2">
+                Un problème sur ce match (score contesté, adversaire injoignable…) ?
+                Ouvre une réclamation : une discussion privée sera créée avec ton adversaire et les administrateurs.
+            </p>
+            <form method="post" action="claim.php">
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="action" value="create">
+                <input type="hidden" name="match_id" value="<?= (int)$matchId ?>">
+                <textarea name="reason" class="form-control mb-2" rows="2" maxlength="255" required
+                          placeholder="Décris brièvement le motif de la réclamation…"></textarea>
+                <button class="btn btn-outline-danger">🚩 Ouvrir une réclamation</button>
+            </form>
+        <?php endif; ?>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if ($isParticipant && $match['status'] !== 'completed'): ?>
+<script>
+(function () {
+    var form = document.getElementById('score-form');
+    if (!form) return;
+    var side = form.dataset.myside;
+    var home = document.getElementById('fld-home');
+    var away = document.getElementById('fld-away');
+    var proof = document.getElementById('fld-proof');
+    var hint = document.getElementById('proof-hint');
+    var hasProof = <?= $mySubmission && $mySubmission['proof_image'] ? 'true' : 'false' ?>;
+    function update() {
+        var h = parseInt(home.value, 10), a = parseInt(away.value, 10);
+        if (isNaN(h) || isNaN(a)) return;
+        var mine = side === 'home' ? h : a;
+        var opp  = side === 'home' ? a : h;
+        var winning = mine > opp;
+        if (winning && !hasProof) {
+            proof.required = true;
+            hint.textContent = '(obligatoire — vainqueur)';
+            hint.className = 'text-danger fw-semibold';
+        } else {
+            proof.required = false;
+            hint.textContent = winning ? '(preuve déjà envoyée)' : '(facultatif)';
+            hint.className = 'text-secondary';
+        }
+    }
+    home.addEventListener('input', update);
+    away.addEventListener('input', update);
+    proof.addEventListener('change', function () { hasProof = proof.files.length > 0 || hasProof; update(); });
+    update();
+})();
+</script>
+<?php endif; ?>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>

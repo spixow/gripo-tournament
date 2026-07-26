@@ -463,6 +463,53 @@ main > *, .glass { animation: fadeUp .5s var(--ease) both; }
 .latecomer-chip.late { background: rgba(225,29,72,.08); border-color: rgba(225,29,72,.35); }
 
 /* =========================================================
+   CHAT DES RÉCLAMATIONS
+   ========================================================= */
+.chat-thread {
+    max-height: 460px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+    padding: .3rem;
+}
+.chat-msg {
+    display: flex;
+    align-items: flex-end;
+    gap: .5rem;
+    max-width: 85%;
+}
+.chat-msg.mine {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+.chat-bubble {
+    background: #ffffff;
+    border: 1px solid var(--line-soft);
+    border-radius: 14px;
+    padding: .5rem .75rem;
+    box-shadow: 0 4px 12px -8px rgba(16,45,30,.4);
+}
+.chat-msg.mine .chat-bubble {
+    background: linear-gradient(135deg, rgba(6,161,90,.14), rgba(6,161,90,.06));
+    border-color: rgba(6,161,90,.3);
+}
+.chat-name { font-weight: 700; font-size: .8rem; color: var(--txt); margin-bottom: .1rem; }
+.chat-body { font-size: .92rem; color: var(--txt); word-break: break-word; }
+.chat-time { font-size: .68rem; color: var(--faint); margin-top: .15rem; text-align: right; }
+.chat-system {
+    align-self: center;
+    text-align: center;
+    font-size: .78rem;
+    color: var(--muted);
+    background: rgba(16,45,30,.05);
+    border: 1px dashed var(--line-soft);
+    border-radius: 999px;
+    padding: .25rem .8rem;
+}
+.chat-system .chat-time { display: inline; margin-left: .4rem; }
+
+/* =========================================================
    CLASSEMENT — PODIUM
    ========================================================= */
 .podium {

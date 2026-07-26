@@ -77,6 +77,35 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
     $log[] = "Table activity_log prête.";
+
+    // 4) Tables des réclamations (tickets + chat)
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS `claims` (
+          `id`         INT AUTO_INCREMENT PRIMARY KEY,
+          `match_id`   INT NOT NULL,
+          `opened_by`  INT NULL,
+          `reason`     VARCHAR(255) NOT NULL,
+          `status`     VARCHAR(15) NOT NULL DEFAULT 'open',
+          `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          `closed_at`  TIMESTAMP NULL,
+          FOREIGN KEY (`match_id`)  REFERENCES `matches`(`id`) ON DELETE CASCADE,
+          FOREIGN KEY (`opened_by`) REFERENCES `players`(`id`) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS `claim_messages` (
+          `id`         INT AUTO_INCREMENT PRIMARY KEY,
+          `claim_id`   INT NOT NULL,
+          `sender_id`  INT NULL,
+          `body`       TEXT NOT NULL,
+          `is_system`  TINYINT(1) NOT NULL DEFAULT 0,
+          `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (`claim_id`)  REFERENCES `claims`(`id`)  ON DELETE CASCADE,
+          FOREIGN KEY (`sender_id`) REFERENCES `players`(`id`) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    $log[] = "Tables claims / claim_messages prêtes.";
 } catch (Throwable $ex) {
     $err[] = $ex->getMessage();
 }

@@ -4,7 +4,7 @@ $page = 'matches';
 $byRound = matches_by_round();
 $user = current_user();
 $latecomers = players_with_pending();
-$deadlinePassed = new DateTime() > new DateTime(APP_DEADLINE);
+$deadlinePassed = new DateTime() > new DateTime(APP_DEADLINE . ' ' . APP_DEADLINE_TIME);
 require __DIR__ . '/includes/header.php';
 ?>
 <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
@@ -22,7 +22,7 @@ require __DIR__ . '/includes/header.php';
     <?php if ($deadlinePassed): ?>
         <div class="h4 mb-0" style="color:var(--pink)">⚠️ Deadline dépassée</div>
     <?php else: ?>
-        <div id="countdown" class="countdown-grid" data-deadline="<?= e(APP_DEADLINE) ?>T23:59:59">
+        <div id="countdown" class="countdown-grid" data-deadline="<?= e(APP_DEADLINE) ?>T<?= e(APP_DEADLINE_TIME) ?>">
             <div class="cd-box"><span class="cd-num" data-cd="d">–</span><span class="cd-lbl">jours</span></div>
             <div class="cd-box"><span class="cd-num" data-cd="h">–</span><span class="cd-lbl">heures</span></div>
             <div class="cd-box"><span class="cd-num" data-cd="m">–</span><span class="cd-lbl">min</span></div>

@@ -651,6 +651,171 @@ function activity_label(string $action): array
         'bracket_generate'=> ['Bracket généré', 'info'],
         'bracket_clear'   => ['Bracket supprimé', 'warning'],
         'bracket_score'   => ['Score bracket', 'info'],
+        'claim_open'      => ['Réclamation ouverte', 'danger'],
+        'claim_status'    => ['Réclamation MàJ', 'warning'],
+        'claim_message'   => ['Message réclamation', 'info'],
         default           => [ucfirst($action), 'secondary'],
     };
+}
+
+/* -------------------- Réclamations (tickets + chat) -------------------- */
+
+/** Crée les tables des réclamations si absentes. */
+function ensure_claims_tables(): void
+{
+    db()->exec(
+        "CREATE TABLE IF NOT EXISTS `claims` (
+          `id` INT AUTO_INCREMENT PRIMARY KEY,
+          `match_id` INT NOT NULL,
+          `opened_by` INT NULL,
+          `reason` VARCHAR(255) NOT NULL,
+          `status` VARCHAR(15) NOT NULL DEFAULT 'open',
+          `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          `closed_at` TIMESTAMP NULL,
+          FOREIGN KEY (`match_id`) REFERENCES `matches`(`id`) ON DELETE CASCADE,
+          FOREIGN KEY (`opened_by`) REFERENCES `players`(`id`) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    db()->exec(
+        "CREATE TABLE IF NOT EXISTS `claim_messages` (
+          `id` INT AUTO_INCREMENT PRIMARY KEY,
+          `claim_id` INT NOT NULL,
+          `sender_id` INT NULL,
+          `body` TEXT NOT NULL,
+          `is_system` TINYINT(1) NOT NULL DEFAULT 0,
+          `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (`claim_id`) REFERENCES `claims`(`id`) ON DELETE CASCADE,
+          FOREIGN KEY (`sender_id`) REFERENCES `players`(`id`) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+}
+
+/** Libellé + couleur d'un statut de réclamation. */
+function claim_status_label(string $s): array
+{
+    return match ($s) {
+        'open'        => ['Ouverte', 'warning'],
+        'in_progress' => ['En cours', 'info'],
+        'resolved'    => ['Résolue', 'success'],
+        'closed'      => ['Fermée', 'secondary'],
+        default       => [ucfirst($s), 'secondary'],
+    };
+}
+
+/** Réclamation non fermée existante pour un match, sinon null. */
+function open_claim_for_match(int $matchId): ?array
+{
+    try {
+        $st = db()->prepare("SELECT * FROM claims WHERE match_id = ? AND status <> 'closed' ORDER BY id DESC LIMIT 1");
+        $st->execute([$matchId]);
+        return $st->fetch() ?: null;
+    } catch (PDOException $e) {
+        return null;
+    }
+}
+
+/** Détail d'une réclamation (avec infos match + joueurs). */
+function get_claim(int $id): ?array
+{
+    try {
+        $sql = "SELECT c.*, m.round, m.match_number, m.home_id, m.away_id, m.status AS match_status,
+                       h.display_name AS home_name, a.display_name AS away_name,
+                       o.display_name AS opener_name
+                FROM claims c
+                JOIN matches m ON m.id = c.match_id
+                JOIN players h ON h.id = m.home_id
+                JOIN players a ON a.id = m.away_id
+                LEFT JOIN players o ON o.id = c.opened_by
+                WHERE c.id = ?";
+        $st = db()->prepare($sql);
+        $st->execute([$id]);
+        return $st->fetch() ?: null;
+    } catch (PDOException $e) {
+        return null;
+    }
+}
+
+/** Vrai si l'utilisateur peut accéder à la réclamation (2 joueurs du match ou admin). */
+function user_can_access_claim(array $claim, ?array $user): bool
+{
+    if (!$user) return false;
+    if (!empty($user['is_admin'])) return true;
+    return in_array((int)$user['id'], [(int)$claim['home_id'], (int)$claim['away_id']], true);
+}
+
+/** Messages d'une réclamation (chat). */
+function claim_messages(int $claimId): array
+{
+    $sql = "SELECT cm.*, p.display_name AS sender_name, p.avatar_color, p.is_admin
+            FROM claim_messages cm
+            LEFT JOIN players p ON p.id = cm.sender_id
+            WHERE cm.claim_id = ?
+            ORDER BY cm.id";
+    $st = db()->prepare($sql);
+    $st->execute([$claimId]);
+    return $st->fetchAll();
+}
+
+/** Ajoute un message au fil de la réclamation. */
+function add_claim_message(int $claimId, ?int $senderId, string $body, bool $system = false): void
+{
+    db()->prepare('INSERT INTO claim_messages (claim_id, sender_id, body, is_system) VALUES (?,?,?,?)')
+        ->execute([$claimId, $senderId, mb_substr($body, 0, 4000), $system ? 1 : 0]);
+    db()->prepare('UPDATE claims SET updated_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$claimId]);
+}
+
+/** Crée une réclamation + messages initiaux. Retourne l'id. */
+function create_claim(int $matchId, int $byId, string $reason): int
+{
+    ensure_claims_tables();
+    $st = db()->prepare('INSERT INTO claims (match_id, opened_by, reason, status) VALUES (?,?,?,"open")');
+    $st->execute([$matchId, $byId, mb_substr($reason, 0, 255)]);
+    $id = (int)db()->lastInsertId();
+    add_claim_message($id, $byId, $reason, false);
+    add_claim_message($id, null, "Réclamation ouverte. Les administrateurs et les deux joueurs peuvent discuter ici.", true);
+    return $id;
+}
+
+/** Change le statut d'une réclamation. */
+function set_claim_status(int $claimId, string $status): void
+{
+    if (!in_array($status, ['open', 'in_progress', 'resolved', 'closed'], true)) return;
+    $closedAt = $status === 'closed' ? date('Y-m-d H:i:s') : null;
+    db()->prepare('UPDATE claims SET status = ?, closed_at = ? WHERE id = ?')
+        ->execute([$status, $closedAt, $claimId]);
+}
+
+/** Réclamations visibles par l'utilisateur (toutes pour admin, sinon les siennes). */
+function claims_for_user(?array $user): array
+{
+    if (!$user) return [];
+    try {
+        $base = "SELECT c.*, m.round,
+                        h.display_name AS home_name, a.display_name AS away_name,
+                        (SELECT COUNT(*) FROM claim_messages cm WHERE cm.claim_id = c.id) AS msg_count
+                 FROM claims c
+                 JOIN matches m ON m.id = c.match_id
+                 JOIN players h ON h.id = m.home_id
+                 JOIN players a ON a.id = m.away_id ";
+        $order = " ORDER BY (c.status = 'closed') ASC, c.updated_at DESC";
+        if (!empty($user['is_admin'])) {
+            return db()->query($base . $order)->fetchAll();
+        }
+        $st = db()->prepare($base . " WHERE m.home_id = :u OR m.away_id = :u2 " . $order);
+        $st->execute([':u' => $user['id'], ':u2' => $user['id']]);
+        return $st->fetchAll();
+    } catch (PDOException $e) {
+        return [];
+    }
+}
+
+/** Nombre de réclamations actives (ouvertes ou en cours). */
+function open_claims_count(): int
+{
+    try {
+        return (int)db()->query("SELECT COUNT(*) FROM claims WHERE status IN ('open','in_progress')")->fetchColumn();
+    } catch (PDOException $e) {
+        return 0;
+    }
 }

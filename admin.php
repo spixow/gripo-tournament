@@ -113,7 +113,7 @@ $activityFilter = (int)($_GET['activity_player'] ?? 0) ?: null;
 $activityLog = get_activity_log(120, $activityFilter);
 
 $summary = tournament_summary();
-$deadlinePassed = new DateTime() > new DateTime(APP_DEADLINE);
+$deadlinePassed = new DateTime() > new DateTime(APP_DEADLINE . ' ' . APP_DEADLINE_TIME);
 
 require __DIR__ . '/includes/header.php';
 ?>
