@@ -4,7 +4,7 @@ $page = 'matches';
 $byRound = matches_by_round();
 $user = current_user();
 $latecomers = players_with_pending();
-$deadlinePassed = new DateTime() > new DateTime(APP_DEADLINE . ' ' . APP_DEADLINE_TIME);
+$deadlinePassed = deadline_passed();
 $allPlayers = all_players();
 $filterPlayer = (int)($_GET['player'] ?? 0) ?: null;
 $filterName = null;
@@ -55,11 +55,11 @@ require __DIR__ . '/includes/header.php';
 
 <!-- Compte à rebours de la deadline -->
 <div class="glass p-3 mb-4 text-center countdown-banner">
-    <div class="hero-sub mb-2">⏳ DEADLINE DE LA PHASE DE LIGUE — <?= e(APP_DEADLINE) ?></div>
+    <div class="hero-sub mb-2">⏳ DEADLINE DE LA PHASE DE LIGUE — <?= e(app_deadline_date()) ?> à <?= e(substr(app_deadline_time(),0,5)) ?></div>
     <?php if ($deadlinePassed): ?>
         <div class="h4 mb-0" style="color:var(--pink)">⚠️ Deadline dépassée</div>
     <?php else: ?>
-        <div id="countdown" class="countdown-grid" data-deadline="<?= e(APP_DEADLINE) ?>T<?= e(APP_DEADLINE_TIME) ?>">
+        <div id="countdown" class="countdown-grid" data-deadline="<?= e(app_deadline_date()) ?>T<?= e(app_deadline_time()) ?>">
             <div class="cd-box"><span class="cd-num" data-cd="d">–</span><span class="cd-lbl">jours</span></div>
             <div class="cd-box"><span class="cd-num" data-cd="h">–</span><span class="cd-lbl">heures</span></div>
             <div class="cd-box"><span class="cd-num" data-cd="m">–</span><span class="cd-lbl">min</span></div>

@@ -2,7 +2,7 @@
 require_once __DIR__ . '/functions.php';
 $currentUser = current_user();
 $page = $page ?? '';
-$deadlineDT = new DateTime(APP_DEADLINE . ' ' . (defined('APP_DEADLINE_TIME') ? APP_DEADLINE_TIME : '00:00:00'));
+$deadlineDT = app_deadline_dt();
 $daysLeft = (new DateTime())->diff($deadlineDT)->days;
 $deadlinePassed = new DateTime() > $deadlineDT;
 $navPending = ($currentUser && empty($currentUser['is_admin']))
@@ -77,6 +77,12 @@ $navPending = ($currentUser && empty($currentUser['is_admin']))
 </nav>
 
 <main class="container py-4">
+    <?php if ($ann = get_announcement()): ?>
+        <div class="announce-banner mb-4">
+            <span class="announce-icon">📢</span>
+            <div class="announce-text"><?= nl2br(e($ann['text'])) ?></div>
+        </div>
+    <?php endif; ?>
     <?php foreach (get_flashes() as $f): ?>
         <div class="alert alert-<?= e($f['type']) ?> alert-dismissible fade show" role="alert">
             <?= e($f['msg']) ?>

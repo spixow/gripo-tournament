@@ -7,6 +7,7 @@ CREATE DATABASE IF NOT EXISTS `tournoi_fifa`
 USE `tournoi_fifa`;
 
 -- ---------- Joueurs / Comptes ----------
+DROP TABLE IF EXISTS `settings`;
 DROP TABLE IF EXISTS `claim_messages`;
 DROP TABLE IF EXISTS `claims`;
 DROP TABLE IF EXISTS `activity_log`;
@@ -118,4 +119,11 @@ CREATE TABLE `claim_messages` (
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`claim_id`)  REFERENCES `claims`(`id`)  ON DELETE CASCADE,
   FOREIGN KEY (`sender_id`) REFERENCES `players`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------- Paramètres dynamiques (annonce, deadline…) ----------
+CREATE TABLE `settings` (
+  `k` VARCHAR(50) PRIMARY KEY,
+  `v` TEXT NULL,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

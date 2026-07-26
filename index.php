@@ -139,7 +139,7 @@ require __DIR__ . '/includes/header.php';
                     <li>Départage : points → différence de buts → buts marqués → confrontation directe.</li>
                     <li>Après le match, <strong style="color:var(--txt)">les deux joueurs</strong> saisissent le score ; la <strong style="color:var(--txt)">preuve image</strong> est facultative (recommandée en cas de litige).</li>
                     <li>Le match est validé automatiquement si les deux scores concordent, sinon il passe en <span class="text-danger">litige</span>.</li>
-                    <li>Deadline de la phase de ligue : <strong style="color:var(--gold)"><?= e(APP_DEADLINE) ?></strong>.</li>
+                    <li>Deadline de la phase de ligue : <strong style="color:var(--gold)"><?= e(app_deadline_date()) ?></strong>.</li>
                 </ul>
             </div>
         </div>

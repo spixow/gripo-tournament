@@ -622,6 +622,7 @@ function activity_label(string $action): array
         'claim_open'      => ['Réclamation ouverte', 'danger'],
         'claim_status'    => ['Réclamation MàJ', 'warning'],
         'claim_message'   => ['Message réclamation', 'info'],
+        'settings'        => ['Réglages', 'primary'],
         default           => [ucfirst($action), 'secondary'],
     };
 }
@@ -786,4 +787,84 @@ function open_claims_count(): int
     } catch (PDOException $e) {
         return 0;
     }
+}
+
+/* -------------------- Paramètres dynamiques (settings) -------------------- */
+
+/** Crée la table clé/valeur si absente. */
+function ensure_settings_table(): void
+{
+    db()->exec(
+        "CREATE TABLE IF NOT EXISTS `settings` (
+          `k` VARCHAR(50) PRIMARY KEY,
+          `v` TEXT NULL,
+          `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+}
+
+/** Charge tous les paramètres (avec cache mémoire). */
+function _settings_all(): array
+{
+    static $cache = null;
+    if ($cache === null) {
+        $cache = [];
+        try {
+            foreach (db()->query('SELECT k, v FROM settings')->fetchAll() as $r) {
+                $cache[$r['k']] = $r['v'];
+            }
+        } catch (PDOException $e) {
+            $cache = [];
+        }
+    }
+    return $cache;
+}
+
+function get_setting(string $k, ?string $default = null): ?string
+{
+    $all = _settings_all();
+    return array_key_exists($k, $all) ? $all[$k] : $default;
+}
+
+function set_setting(string $k, string $v): void
+{
+    ensure_settings_table();
+    db()->prepare('INSERT INTO settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)')
+        ->execute([$k, $v]);
+}
+
+/* -------------------- Deadline dynamique -------------------- */
+
+function app_deadline_date(): string
+{
+    $v = get_setting('deadline_date');
+    return ($v && preg_match('/^\d{4}-\d{2}-\d{2}$/', $v)) ? $v : APP_DEADLINE;
+}
+
+function app_deadline_time(): string
+{
+    $v = get_setting('deadline_time');
+    return ($v && preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $v)) ? (strlen($v) === 5 ? $v . ':00' : $v)
+        : (defined('APP_DEADLINE_TIME') ? APP_DEADLINE_TIME : '00:00:00');
+}
+
+function app_deadline_dt(): DateTime
+{
+    return new DateTime(app_deadline_date() . ' ' . app_deadline_time());
+}
+
+function deadline_passed(): bool
+{
+    return new DateTime() > app_deadline_dt();
+}
+
+/* -------------------- Annonce (bannière) -------------------- */
+
+/** Retourne l'annonce active : ['text'=>string,'active'=>bool] ou null. */
+function get_announcement(): ?array
+{
+    $text = trim((string)get_setting('announcement', ''));
+    $active = get_setting('announcement_active', '0') === '1';
+    if ($text === '' || !$active) return null;
+    return ['text' => $text, 'active' => true];
 }

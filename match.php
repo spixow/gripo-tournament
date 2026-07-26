@@ -13,7 +13,7 @@ $user = current_user();
 $isParticipant = $user && !$user['is_admin'] && ($user['id'] == $match['home_id'] || $user['id'] == $match['away_id']);
 $submissions = submissions_of_match($matchId);
 $mySubmission = $user ? ($submissions[$user['id']] ?? null) : null;
-$deadlinePassed = new DateTime() > new DateTime(APP_DEADLINE . ' ' . APP_DEADLINE_TIME);
+$deadlinePassed = deadline_passed();
 
 /* -------------------- Traitement du formulaire -------------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isParticipant && $match['status'] !== 'completed') {

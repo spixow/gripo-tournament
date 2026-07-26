@@ -509,6 +509,36 @@ main > *, .glass { animation: fadeUp .5s var(--ease) both; }
 }
 .chat-system .chat-time { display: inline; margin-left: .4rem; }
 
+/* --- Bannière d'annonce admin --- */
+.announce-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: .7rem;
+    background: linear-gradient(135deg, rgba(217,154,0,.16), rgba(217,154,0,.06));
+    border: 1px solid rgba(217,154,0,.4);
+    border-left: 5px solid var(--gold);
+    border-radius: var(--radius-sm);
+    padding: .85rem 1.1rem;
+    color: var(--txt);
+    font-weight: 500;
+    box-shadow: 0 8px 20px -14px rgba(217,154,0,.6);
+}
+.announce-icon { font-size: 1.3rem; line-height: 1.2; }
+.announce-text { flex: 1; }
+
+/* --- Mode export image (html2canvas) --- */
+body.exporting #bg-canvas { display: none !important; }
+body.exporting .glass {
+    background: #ffffff !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+body.exporting .match-card,
+body.exporting .bk-match,
+body.exporting .podium-item { box-shadow: none !important; }
+body.exporting .bracket-wrap { overflow: visible !important; }
+body.exporting .btn-export-hide { display: none !important; }
+
 /* =========================================================
    CLASSEMENT — PODIUM
    ========================================================= */

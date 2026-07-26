@@ -55,6 +55,11 @@ require __DIR__ . '/includes/header.php';
     </div>
 <?php else: ?>
 
+    <div class="text-center mb-3">
+        <button id="btn-export-bracket" class="btn btn-fifa btn-sm btn-export-hide">🖼️ Exporter le bracket (PNG)</button>
+    </div>
+
+    <div id="bracket-capture">
     <?php if ($champion): ?>
         <div class="glass p-4 mb-4 text-center champion-banner">
             <div class="hero-sub mb-2" style="color:var(--gold)">🏅 CHAMPION — GRIPO TOURNAMENT</div>
@@ -83,6 +88,15 @@ require __DIR__ . '/includes/header.php';
             </div>
         </div>
     </div>
+    </div><!-- /#bracket-capture -->
+
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="assets/js/export-png.js"></script>
+    <script>
+    document.getElementById('btn-export-bracket').addEventListener('click', function () {
+        window.exportNodePng(document.getElementById('bracket-capture'), 'bracket-gripo-tournament.png', this);
+    });
+    </script>
 <?php endif; ?>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>

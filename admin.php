@@ -63,6 +63,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 . $target['display_name'] . ' (' . $target['username'] . ')');
             flash('success', $target['display_name'] . ($makeAdmin ? ' est désormais administrateur.' : ' est redevenu joueur.'));
         }
+    } elseif ($action === 'save_announcement') {
+        $text   = trim($_POST['announcement'] ?? '');
+        $active = isset($_POST['announcement_active']) ? '1' : '0';
+        set_setting('announcement', mb_substr($text, 0, 500));
+        set_setting('announcement_active', $active);
+        log_activity('settings', 'Annonce ' . ($active === '1' && $text !== '' ? 'publiée' : 'masquée'));
+        flash('success', 'Annonce enregistrée.');
+    } elseif ($action === 'save_deadline') {
+        $d = trim($_POST['deadline_date'] ?? '');
+        $t = trim($_POST['deadline_time'] ?? '');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) || !preg_match('/^\d{2}:\d{2}$/', $t)) {
+            flash('danger', 'Date ou heure invalide.');
+        } else {
+            set_setting('deadline_date', $d);
+            set_setting('deadline_time', $t . ':00');
+            log_activity('settings', "Deadline modifiée : $d $t");
+            flash('success', 'Deadline mise à jour.');
+        }
     } elseif ($action === 'gen_bracket') {
         try {
             generate_bracket();
@@ -113,7 +131,7 @@ $activityFilter = (int)($_GET['activity_player'] ?? 0) ?: null;
 $activityLog = get_activity_log(120, $activityFilter);
 
 $summary = tournament_summary();
-$deadlinePassed = new DateTime() > new DateTime(APP_DEADLINE . ' ' . APP_DEADLINE_TIME);
+$deadlinePassed = deadline_passed();
 
 require __DIR__ . '/includes/header.php';
 ?>
@@ -144,8 +162,56 @@ require __DIR__ . '/includes/header.php';
     </div>
     <div class="col-6 col-lg-3">
         <div class="glass p-3 text-center h-100">
-            <div class="h3 mb-0" style="color:<?= $deadlinePassed?'var(--pink)':'var(--cyan)' ?>"><?= e(APP_DEADLINE) ?></div>
+            <div class="h3 mb-0" style="color:<?= $deadlinePassed?'var(--pink)':'var(--cyan)' ?>"><?= e(app_deadline_date()) ?></div>
             <div class="small text-secondary"><?= $deadlinePassed ? '⚠️ Deadline dépassée' : 'Échéance' ?></div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ Réglages : annonce & deadline ============ -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="glass h-100">
+            <div class="card-header-fifa">📢 Annonce (bannière visible par tous)</div>
+            <div class="p-3">
+                <form method="post">
+                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="action" value="save_announcement">
+                    <textarea name="announcement" class="form-control mb-2" rows="3" maxlength="500"
+                              placeholder="Ex : Rappel — merci de jouer vos matchs avant la deadline !"><?= e(get_setting('announcement', '') ?? '') ?></textarea>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" name="announcement_active" id="annact"
+                               <?= get_setting('announcement_active','0')==='1' ? 'checked' : '' ?>>
+                        <label class="form-check-label small" for="annact">Afficher l'annonce sur tout le site</label>
+                    </div>
+                    <button class="btn btn-sm btn-fifa">Enregistrer l'annonce</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="glass h-100">
+            <div class="card-header-fifa">🗓️ Deadline du tournoi</div>
+            <div class="p-3">
+                <form method="post" class="row g-2 align-items-end">
+                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="action" value="save_deadline">
+                    <div class="col-7">
+                        <label class="form-label small mb-1">Date</label>
+                        <input type="date" name="deadline_date" class="form-control" value="<?= e(app_deadline_date()) ?>" required>
+                    </div>
+                    <div class="col-5">
+                        <label class="form-label small mb-1">Heure</label>
+                        <input type="time" name="deadline_time" class="form-control" value="<?= e(substr(app_deadline_time(),0,5)) ?>" required>
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-sm btn-fifa w-100">Mettre à jour la deadline</button>
+                    </div>
+                    <div class="col-12">
+                        <span class="small text-secondary">Actuelle : <strong style="color:var(--txt)"><?= e(app_deadline_date()) ?> à <?= e(substr(app_deadline_time(),0,5)) ?></strong></span>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>

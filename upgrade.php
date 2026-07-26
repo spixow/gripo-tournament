@@ -106,6 +106,16 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
     $log[] = "Tables claims / claim_messages prêtes.";
+
+    // 5) Table des paramètres dynamiques
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS `settings` (
+          `k` VARCHAR(50) PRIMARY KEY,
+          `v` TEXT NULL,
+          `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    $log[] = "Table settings prête.";
 } catch (Throwable $ex) {
     $err[] = $ex->getMessage();
 }
