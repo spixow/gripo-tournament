@@ -93,6 +93,16 @@ function get_player(int $id): ?array
 
 function all_players(): array
 {
+    // Participants au tournoi = joueurs figurant dans au moins un match.
+    // (indépendant du statut admin : un participant promu admin reste dans le classement)
+    $sql = 'SELECT DISTINCT p.* FROM players p
+            JOIN matches m ON p.id = m.home_id OR p.id = m.away_id
+            ORDER BY p.display_name';
+    $rows = db()->query($sql)->fetchAll();
+    if ($rows) {
+        return $rows;
+    }
+    // Repli (aucun match encore créé) : tous les comptes non-admin
     return db()->query('SELECT * FROM players WHERE is_admin = 0 ORDER BY display_name')->fetchAll();
 }
 
@@ -567,6 +577,7 @@ function activity_label(string $action): array
         'admin_score'     => ['Score forcé (admin)', 'info'],
         'admin_reset'     => ['Reset match (admin)', 'warning'],
         'admin_password'  => ['MDP modifié (admin)', 'primary'],
+        'admin_role'      => ['Rôle modifié (admin)', 'danger'],
         'bracket_generate'=> ['Bracket généré', 'info'],
         'bracket_clear'   => ['Bracket supprimé', 'warning'],
         'bracket_score'   => ['Score bracket', 'info'],

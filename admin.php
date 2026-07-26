@@ -42,6 +42,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             log_activity('admin_password', 'Mot de passe modifié pour ' . $target['display_name'] . ' (' . $target['username'] . ')');
             flash('success', 'Mot de passe mis à jour pour ' . $target['display_name'] . '.');
         }
+    } elseif ($action === 'toggle_admin') {
+        $pid = (int)($_POST['player_id'] ?? 0);
+        $target = get_player($pid);
+        if (!$target) {
+            flash('danger', 'Compte introuvable.');
+        } elseif ($pid === (int)$admin['id']) {
+            flash('danger', 'Vous ne pouvez pas modifier votre propre statut administrateur.');
+        } else {
+            $makeAdmin = empty($target['is_admin']) ? 1 : 0;
+            if (!$makeAdmin) {
+                $adminCount = (int)db()->query('SELECT COUNT(*) FROM players WHERE is_admin = 1')->fetchColumn();
+                if ($adminCount <= 1) {
+                    flash('danger', 'Impossible : au moins un administrateur doit rester.');
+                    redirect('admin.php');
+                }
+            }
+            db()->prepare('UPDATE players SET is_admin = ? WHERE id = ?')->execute([$makeAdmin, $pid]);
+            log_activity('admin_role', ($makeAdmin ? 'Promu administrateur : ' : 'Rétrogradé joueur : ')
+                . $target['display_name'] . ' (' . $target['username'] . ')');
+            flash('success', $target['display_name'] . ($makeAdmin ? ' est désormais administrateur.' : ' est redevenu joueur.'));
+        }
     } elseif ($action === 'gen_bracket') {
         try {
             generate_bracket();
@@ -258,14 +279,18 @@ require __DIR__ . '/includes/header.php';
 
 <!-- ============ Gestion des comptes ============ -->
 <div class="glass mt-4">
-    <div class="card-header-fifa">🔑 Comptes — réinitialiser les mots de passe</div>
+    <div class="card-header-fifa">🔑 Comptes — rôles &amp; mots de passe</div>
     <div class="p-3">
-        <p class="text-secondary small">Définissez un nouveau mot de passe pour n'importe quel compte (6 caractères min.).</p>
+        <p class="text-secondary small">
+            Réinitialisez le mot de passe de n'importe quel compte (6 caractères min.)
+            et accordez ou retirez les droits <strong>administrateur</strong>.
+        </p>
         <div class="table-responsive">
             <table class="table table-fifa mb-0 align-middle">
                 <thead><tr><th>Compte</th><th>Nom d'utilisateur</th><th>Rôle</th><th>Nouveau mot de passe</th></tr></thead>
                 <tbody>
-                <?php foreach ($accounts as $acc): ?>
+                <?php foreach ($accounts as $acc):
+                    $isSelf = (int)$acc['id'] === (int)$admin['id']; ?>
                     <tr>
                         <td class="fw-semibold" style="white-space:nowrap">
                             <span class="avatar me-1" style="background:<?= e($acc['avatar_color']) ?>;width:26px;height:26px;font-size:.75rem">
@@ -274,7 +299,26 @@ require __DIR__ . '/includes/header.php';
                             <?= e($acc['display_name']) ?>
                         </td>
                         <td><code><?= e($acc['username']) ?></code></td>
-                        <td><?= $acc['is_admin'] ? '<span class="badge text-bg-warning">Admin</span>' : '<span class="badge text-bg-secondary">Joueur</span>' ?></td>
+                        <td style="white-space:nowrap">
+                            <?php if ($acc['is_admin']): ?>
+                                <span class="badge text-bg-warning">Admin</span>
+                            <?php else: ?>
+                                <span class="badge text-bg-secondary">Joueur</span>
+                            <?php endif; ?>
+                            <?php if ($isSelf): ?>
+                                <span class="text-secondary small ms-1">(vous)</span>
+                            <?php else: ?>
+                                <form method="post" class="d-inline"
+                                      onsubmit="return confirm('<?= $acc['is_admin'] ? 'Retirer les droits admin à ' : 'Donner les droits admin à ' ?><?= e($acc['display_name']) ?> ?');">
+                                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                                    <input type="hidden" name="action" value="toggle_admin">
+                                    <input type="hidden" name="player_id" value="<?= (int)$acc['id'] ?>">
+                                    <button class="btn btn-sm <?= $acc['is_admin'] ? 'btn-outline-danger' : 'btn-outline-info' ?> ms-1">
+                                        <?= $acc['is_admin'] ? 'Retirer admin' : 'Rendre admin' ?>
+                                    </button>
+                                </form>
+                            <?php endif; ?>
+                        </td>
                         <td style="min-width:280px">
                             <form method="post" class="d-flex gap-1">
                                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
