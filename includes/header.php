@@ -24,7 +24,7 @@ $navPending = ($currentUser && empty($currentUser['is_admin']))
 <body>
 <canvas id="bg-canvas"></canvas>
 
-<nav class="navbar navbar-expand-lg navbar-fifa sticky-top">
+<nav class="navbar navbar-expand-xl navbar-fifa sticky-top">
     <div class="container">
         <a class="navbar-brand" href="index.php">⚽ GRIPO TOURNAMENT</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
@@ -58,16 +58,18 @@ $navPending = ($currentUser && empty($currentUser['is_admin']))
                     <li class="nav-item"><a class="nav-link <?= $page==='admin'?'active':'' ?>" href="admin.php">Admin</a></li>
                 <?php endif; ?>
             </ul>
-            <div class="d-flex align-items-center gap-2">
+            <div class="navbar-actions d-flex align-items-center gap-2 flex-wrap flex-xl-nowrap ms-xl-auto mt-3 mt-xl-0">
                 <span class="deadline-chip">
                     ⏳ <?= $deadlinePassed ? 'Deadline dépassée' : $daysLeft.' j restants' ?>
                 </span>
                 <?php if ($currentUser): ?>
-                    <span class="avatar" style="background:<?= e($currentUser['avatar_color']) ?>">
-                        <?= e(mb_strtoupper(mb_substr($currentUser['display_name'],0,1))) ?>
+                    <span class="d-inline-flex align-items-center gap-2 flex-shrink-0">
+                        <span class="avatar" style="background:<?= e($currentUser['avatar_color']) ?>">
+                            <?= e(mb_strtoupper(mb_substr($currentUser['display_name'],0,1))) ?>
+                        </span>
+                        <span class="text-light small text-nowrap d-none d-sm-inline"><?= e($currentUser['display_name']) ?></span>
+                        <a href="logout.php" class="btn btn-sm btn-outline-light text-nowrap">Déconnexion</a>
                     </span>
-                    <span class="text-light small d-none d-md-inline"><?= e($currentUser['display_name']) ?></span>
-                    <a href="logout.php" class="btn btn-sm btn-outline-light">Déconnexion</a>
                 <?php else: ?>
                     <a href="login.php" class="btn btn-sm btn-fifa">Connexion</a>
                 <?php endif; ?>
