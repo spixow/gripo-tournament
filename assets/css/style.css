@@ -365,6 +365,8 @@ a:hover > .match-card,
    ========================================================= */
 .proof-thumb {
     max-width: 100%;
+    height: auto;
+    image-orientation: from-image;
     border-radius: var(--radius-sm);
     border: 1px solid var(--line);
     transition: transform .2s var(--ease), border-color .2s var(--ease);

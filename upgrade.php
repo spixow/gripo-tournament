@@ -40,6 +40,20 @@ try {
         }
     }
 
+    // 1b) Colonnes de preuve (stockage en base) sur match_submissions
+    $subCols = [
+        'proof_data' => "ADD COLUMN `proof_data` LONGBLOB NULL AFTER `proof_image`",
+        'proof_mime' => "ADD COLUMN `proof_mime` VARCHAR(40) NULL AFTER `proof_data`",
+    ];
+    foreach ($subCols as $col => $ddl) {
+        if (!column_exists($pdo, 'match_submissions', $col)) {
+            $pdo->exec("ALTER TABLE `match_submissions` $ddl");
+            $log[] = "Colonne match_submissions.$col ajoutée.";
+        } else {
+            $log[] = "Colonne match_submissions.$col déjà présente.";
+        }
+    }
+
     // 2) Table bracket_matches
     $pdo->exec(
         "CREATE TABLE IF NOT EXISTS `bracket_matches` (

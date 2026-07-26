@@ -55,6 +55,8 @@ CREATE TABLE `match_submissions` (
   `home_score`    INT NOT NULL,
   `away_score`    INT NOT NULL,
   `proof_image`   VARCHAR(255) NULL,
+  `proof_data`    LONGBLOB     NULL,
+  `proof_mime`    VARCHAR(40)  NULL,
   `created_at`    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY `uniq_match_player` (`match_id`, `player_id`),
   FOREIGN KEY (`match_id`)  REFERENCES `matches`(`id`)  ON DELETE CASCADE,

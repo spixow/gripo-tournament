@@ -31,33 +31,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isParticipant && $match['status'] 
         }
 
         // Preuve image : obligatoire uniquement pour le vainqueur déclaré
-        $proof = handle_proof_upload('proof');
-        if (!$proof && $mySubmission) {
-            $proof = $mySubmission['proof_image']; // conserver l'ancienne si non renvoyée
-        }
+        ensure_proof_columns();
+        $upload = handle_proof_upload('proof'); // ['name','data','mime'] ou null
+        // Nom de preuve effectif (nouvel upload OU preuve déjà enregistrée)
+        $proofName = $upload['name'] ?? ($mySubmission['proof_image'] ?? null);
+
         $submitterIsHome = (int)$user['id'] === (int)$match['home_id'];
         $submitterGoals  = $submitterIsHome ? $hs : $as;
         $opponentGoals   = $submitterIsHome ? $as : $hs;
-        if ($submitterGoals > $opponentGoals && !$proof) {
+        if ($submitterGoals > $opponentGoals && !$proofName) {
             throw new RuntimeException("En tant que vainqueur déclaré, une preuve image du score final est obligatoire.");
         }
 
         $pdo = db();
-        // Insérer ou mettre à jour la soumission du joueur
-        $stmt = $pdo->prepare(
-            'INSERT INTO match_submissions (match_id, player_id, home_score, away_score, proof_image)
-             VALUES (:mid, :pid, :hs, :as, :proof)
-             ON DUPLICATE KEY UPDATE home_score = :hs2, away_score = :as2, proof_image = :proof2'
-        );
-        $stmt->execute([
-            ':mid' => $matchId, ':pid' => $user['id'],
-            ':hs' => $hs, ':as' => $as, ':proof' => $proof,
-            ':hs2' => $hs, ':as2' => $as, ':proof2' => $proof,
-        ]);
+        if ($upload) {
+            // Nouvelle preuve : stockage complet (image en base)
+            $stmt = $pdo->prepare(
+                'INSERT INTO match_submissions (match_id, player_id, home_score, away_score, proof_image, proof_data, proof_mime)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE home_score = VALUES(home_score), away_score = VALUES(away_score),
+                     proof_image = VALUES(proof_image), proof_data = VALUES(proof_data), proof_mime = VALUES(proof_mime)'
+            );
+            $stmt->bindValue(1, $matchId, PDO::PARAM_INT);
+            $stmt->bindValue(2, (int)$user['id'], PDO::PARAM_INT);
+            $stmt->bindValue(3, $hs, PDO::PARAM_INT);
+            $stmt->bindValue(4, $as, PDO::PARAM_INT);
+            $stmt->bindValue(5, $upload['name']);
+            $stmt->bindValue(6, $upload['data'], PDO::PARAM_LOB);
+            $stmt->bindValue(7, $upload['mime']);
+            $stmt->execute();
+        } else {
+            // Pas de nouvelle preuve : on met à jour les scores en conservant la preuve existante
+            $stmt = $pdo->prepare(
+                'INSERT INTO match_submissions (match_id, player_id, home_score, away_score)
+                 VALUES (?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE home_score = VALUES(home_score), away_score = VALUES(away_score)'
+            );
+            $stmt->execute([$matchId, (int)$user['id'], $hs, $as]);
+        }
 
         $matchLabel = $match['home_name'] . ' vs ' . $match['away_name'];
         log_activity('score_submit', "R{$match['round']} $matchLabel — a déclaré $hs:$as"
-            . ($proof ? ' (avec preuve)' : ' (sans preuve)'), $user);
+            . ($proofName ? ' (avec preuve)' : ' (sans preuve)'), $user);
 
         // Recharger les soumissions
         $submissions = submissions_of_match($matchId);
@@ -233,8 +248,8 @@ require __DIR__ . '/includes/header.php';
                                 <span class="score-pill"><?= (int)$sub['home_score'] ?> : <?= (int)$sub['away_score'] ?></span>
                             </div>
                             <?php if ($sub['proof_image']): ?>
-                                <a href="<?= UPLOAD_URL . e($sub['proof_image']) ?>" target="_blank">
-                                    <img src="<?= UPLOAD_URL . e($sub['proof_image']) ?>" class="proof-thumb" alt="Preuve" style="max-height:180px">
+                                <a href="proof.php?id=<?= (int)$sub['id'] ?>" target="_blank">
+                                    <img src="proof.php?id=<?= (int)$sub['id'] ?>" class="proof-thumb" alt="Preuve" style="max-height:180px" loading="lazy">
                                 </a>
                             <?php else: ?>
                                 <span class="text-secondary small">Aucune preuve jointe.</span>

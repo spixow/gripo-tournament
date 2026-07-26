@@ -154,7 +154,11 @@ function matches_of_player(int $playerId): array
 
 function submissions_of_match(int $matchId): array
 {
-    $stmt = db()->prepare('SELECT * FROM match_submissions WHERE match_id = ?');
+    // On ne charge PAS le blob proof_data ici (lourd) — il est servi via proof.php.
+    $stmt = db()->prepare(
+        'SELECT id, match_id, player_id, home_score, away_score, proof_image, created_at
+         FROM match_submissions WHERE match_id = ?'
+    );
     $stmt->execute([$matchId]);
     $out = [];
     foreach ($stmt->fetchAll() as $s) {
@@ -252,9 +256,31 @@ function compute_standings(): array
     return $rows;
 }
 
-/* -------------------- Uploads -------------------- */
+/* -------------------- Uploads (preuves stockées en base) -------------------- */
 
-function handle_proof_upload(string $field): ?string
+/** Ajoute les colonnes de stockage de preuve (blob) si absentes. */
+function ensure_proof_columns(): void
+{
+    try {
+        $cols = ['proof_data' => 'LONGBLOB', 'proof_mime' => 'VARCHAR(40)'];
+        foreach ($cols as $col => $type) {
+            $ex = (int)db()->query(
+                "SELECT COUNT(*) FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'match_submissions' AND COLUMN_NAME = '$col'"
+            )->fetchColumn();
+            if (!$ex) {
+                db()->exec("ALTER TABLE `match_submissions` ADD COLUMN `$col` $type NULL");
+            }
+        }
+    } catch (Throwable $e) { /* silencieux */ }
+}
+
+/**
+ * Valide et lit l'image de preuve envoyée.
+ * Retourne ['name'=>string, 'data'=>binary, 'mime'=>string] ou null si aucun fichier.
+ * L'image est stockée en base (persistant), pas sur le disque (éphémère sur Railway).
+ */
+function handle_proof_upload(string $field): ?array
 {
     if (empty($_FILES[$field]) || $_FILES[$field]['error'] === UPLOAD_ERR_NO_FILE) {
         return null;
@@ -276,15 +302,12 @@ function handle_proof_upload(string $field): ?string
     if (!isset($allowed[$mime])) {
         throw new RuntimeException('Format non autorisé (JPG, PNG ou WEBP uniquement).');
     }
-    if (!is_dir(UPLOAD_DIR)) {
-        mkdir(UPLOAD_DIR, 0775, true);
+    $data = file_get_contents($file['tmp_name']);
+    if ($data === false) {
+        throw new RuntimeException("Impossible de lire l'image envoyée.");
     }
     $name = 'proof_' . bin2hex(random_bytes(8)) . '.' . $allowed[$mime];
-    $dest = UPLOAD_DIR . $name;
-    if (!move_uploaded_file($file['tmp_name'], $dest)) {
-        throw new RuntimeException("Impossible d'enregistrer l'image.");
-    }
-    return $name;
+    return ['name' => $name, 'data' => $data, 'mime' => $mime];
 }
 
 /* -------------------- Étiquettes de statut -------------------- */

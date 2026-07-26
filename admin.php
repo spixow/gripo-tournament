@@ -343,8 +343,8 @@ require __DIR__ . '/includes/header.php';
                         <?php if ($hSub): ?>
                             <span class="score-pill"><?= (int)$hSub['home_score'] ?> : <?= (int)$hSub['away_score'] ?></span>
                             <?php if ($hSub['proof_image']): ?>
-                                <a href="<?= UPLOAD_URL.e($hSub['proof_image']) ?>" target="_blank" class="d-block mt-1">
-                                    <img src="<?= UPLOAD_URL.e($hSub['proof_image']) ?>" class="proof-thumb" style="max-height:120px">
+                                <a href="proof.php?id=<?= (int)$hSub['id'] ?>" target="_blank" class="d-block mt-1">
+                                    <img src="proof.php?id=<?= (int)$hSub['id'] ?>" class="proof-thumb" style="max-height:120px" loading="lazy">
                                 </a>
                             <?php endif; ?>
                         <?php else: ?><span class="text-secondary">—</span><?php endif; ?>
@@ -354,8 +354,8 @@ require __DIR__ . '/includes/header.php';
                         <?php if ($aSub): ?>
                             <span class="score-pill"><?= (int)$aSub['home_score'] ?> : <?= (int)$aSub['away_score'] ?></span>
                             <?php if ($aSub['proof_image']): ?>
-                                <a href="<?= UPLOAD_URL.e($aSub['proof_image']) ?>" target="_blank" class="d-block mt-1">
-                                    <img src="<?= UPLOAD_URL.e($aSub['proof_image']) ?>" class="proof-thumb" style="max-height:120px">
+                                <a href="proof.php?id=<?= (int)$aSub['id'] ?>" target="_blank" class="d-block mt-1">
+                                    <img src="proof.php?id=<?= (int)$aSub['id'] ?>" class="proof-thumb" style="max-height:120px" loading="lazy">
                                 </a>
                             <?php endif; ?>
                         <?php else: ?><span class="text-secondary">—</span><?php endif; ?>
