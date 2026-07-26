@@ -3,6 +3,8 @@ require_once __DIR__ . '/includes/functions.php';
 $page = 'matches';
 $byRound = matches_by_round();
 $user = current_user();
+$latecomers = players_with_pending();
+$deadlinePassed = new DateTime() > new DateTime(APP_DEADLINE);
 require __DIR__ . '/includes/header.php';
 ?>
 <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
@@ -14,9 +16,58 @@ require __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<?php foreach ($byRound as $round => $games): ?>
+<!-- Compte à rebours de la deadline -->
+<div class="glass p-3 mb-4 text-center countdown-banner">
+    <div class="hero-sub mb-2">⏳ DEADLINE DE LA PHASE DE LIGUE — <?= e(APP_DEADLINE) ?></div>
+    <?php if ($deadlinePassed): ?>
+        <div class="h4 mb-0" style="color:var(--pink)">⚠️ Deadline dépassée</div>
+    <?php else: ?>
+        <div id="countdown" class="countdown-grid" data-deadline="<?= e(APP_DEADLINE) ?>T23:59:59">
+            <div class="cd-box"><span class="cd-num" data-cd="d">–</span><span class="cd-lbl">jours</span></div>
+            <div class="cd-box"><span class="cd-num" data-cd="h">–</span><span class="cd-lbl">heures</span></div>
+            <div class="cd-box"><span class="cd-num" data-cd="m">–</span><span class="cd-lbl">min</span></div>
+            <div class="cd-box"><span class="cd-num" data-cd="s">–</span><span class="cd-lbl">sec</span></div>
+        </div>
+    <?php endif; ?>
+</div>
+
+<?php if (!empty($latecomers)): ?>
+<div class="glass mb-4">
+    <div class="card-header-fifa">🐌 Retardataires — joueurs avec des matchs à jouer</div>
+    <div class="p-3 d-flex flex-wrap gap-2">
+        <?php foreach ($latecomers as $lc): ?>
+            <a href="h2h.php?a=<?= (int)$lc['id'] ?>" class="text-decoration-none">
+                <span class="latecomer-chip <?= $deadlinePassed ? 'late' : '' ?>">
+                    <span class="avatar" style="background:<?= e($lc['avatar_color']) ?>;width:22px;height:22px;font-size:.68rem">
+                        <?= e(mb_strtoupper(mb_substr($lc['display_name'],0,1))) ?>
+                    </span>
+                    <?= e($lc['display_name']) ?>
+                    <span class="badge text-bg-danger"><?= (int)$lc['pending'] ?></span>
+                </span>
+            </a>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php foreach ($byRound as $round => $games):
+    $roundPlayed = count(array_filter($games, fn($m) => $m['status']==='completed'));
+    $roundTotal = count($games);
+    $roundDone = $roundPlayed === $roundTotal;
+    ?>
     <div id="round-<?= (int)$round ?>" class="glass mb-4">
-        <div class="card-header-fifa">🎮 Round <?= (int)$round ?></div>
+        <div class="card-header-fifa">
+            🎮 Round <?= (int)$round ?>
+            <span class="ms-auto small" style="letter-spacing:0;text-transform:none;font-weight:600">
+                <?php if ($roundDone): ?>
+                    <span class="badge text-bg-success">Complet</span>
+                <?php elseif ($deadlinePassed): ?>
+                    <span class="badge text-bg-danger">En retard · <?= $roundPlayed ?>/<?= $roundTotal ?></span>
+                <?php else: ?>
+                    <span class="text-secondary"><?= $roundPlayed ?>/<?= $roundTotal ?> joués</span>
+                <?php endif; ?>
+            </span>
+        </div>
         <div class="p-3">
             <div class="row g-3">
                 <?php foreach ($games as $m):
@@ -58,4 +109,26 @@ require __DIR__ . '/includes/header.php';
     </div>
 <?php endforeach; ?>
 
+<script>
+(function () {
+    var el = document.getElementById('countdown');
+    if (!el) return;
+    var target = new Date(el.dataset.deadline).getTime();
+    var out = {
+        d: el.querySelector('[data-cd="d"]'), h: el.querySelector('[data-cd="h"]'),
+        m: el.querySelector('[data-cd="m"]'), s: el.querySelector('[data-cd="s"]')
+    };
+    function tick() {
+        var diff = target - Date.now();
+        if (diff <= 0) { el.innerHTML = '<div class="h4 mb-0" style="color:var(--pink)">⚠️ Deadline atteinte</div>'; return; }
+        var d = Math.floor(diff / 86400000);
+        var h = Math.floor(diff % 86400000 / 3600000);
+        var m = Math.floor(diff % 3600000 / 60000);
+        var s = Math.floor(diff % 60000 / 1000);
+        out.d.textContent = d; out.h.textContent = ('0'+h).slice(-2);
+        out.m.textContent = ('0'+m).slice(-2); out.s.textContent = ('0'+s).slice(-2);
+    }
+    tick(); setInterval(tick, 1000);
+})();
+</script>
 <?php require __DIR__ . '/includes/footer.php'; ?>

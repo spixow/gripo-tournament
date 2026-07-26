@@ -12,8 +12,10 @@ require __DIR__ . '/includes/header.php';
 <section class="text-center py-2">
     <div class="hero-sub mb-2">EA SPORTS FC 26 · LEAGUE PHASE</div>
     <h1 class="hero-title mb-0" style="font-size:2rem">🏆 Classement général</h1>
+    <button id="btn-export-png" class="btn btn-fifa btn-sm mt-3">🖼️ Exporter en image (PNG)</button>
 </section>
 
+<div id="standings-capture" class="p-2">
 <?php if (count($top) === 3):
     $order = [1, 0, 2]; // 2e à gauche, 1er au centre, 3e à droite
     ?>
@@ -110,4 +112,26 @@ require __DIR__ . '/includes/header.php';
         <span class="ms-auto"><strong>Départage :</strong> Pts → Diff. buts → Buts marqués → Confrontation directe</span>
     </div>
 </div>
+</div><!-- /#standings-capture -->
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+document.getElementById('btn-export-png').addEventListener('click', function () {
+    var btn = this, node = document.getElementById('standings-capture');
+    btn.disabled = true; btn.textContent = '⏳ Génération…';
+    html2canvas(node, {
+        backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg-0') || '#eef4f0',
+        scale: 2, useCORS: true, logging: false
+    }).then(function (canvas) {
+        var link = document.createElement('a');
+        link.download = 'classement-gripo-tournament.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        btn.disabled = false; btn.textContent = '🖼️ Exporter en image (PNG)';
+    }).catch(function () {
+        btn.disabled = false; btn.textContent = '🖼️ Exporter en image (PNG)';
+        alert("Échec de l'export image.");
+    });
+});
+</script>
 <?php require __DIR__ . '/includes/footer.php'; ?>

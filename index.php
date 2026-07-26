@@ -12,8 +12,22 @@ if ($user && !$user['is_admin']) {
     $myMatches = array_filter(matches_of_player($user['id']), fn($m) => $m['status'] !== 'completed');
 }
 
+$champion = bracket_champion();
+
 require __DIR__ . '/includes/header.php';
 ?>
+
+<?php if ($champion): ?>
+<section class="glass champion-banner text-center p-4 mb-4">
+    <div class="hero-sub mb-2" style="color:var(--gold)">🏆 CHAMPION — GRIPO TOURNAMENT</div>
+    <div class="champion-avatar mx-auto my-3" style="background:<?= e($champion['avatar_color']) ?>">
+        <?= e(mb_strtoupper(mb_substr($champion['display_name'],0,1))) ?>
+    </div>
+    <h2 class="hero-title mb-1" style="color:var(--gold);font-size:2.2rem"><?= e($champion['display_name']) ?></h2>
+    <p class="text-secondary mb-0">Vainqueur de la phase finale — bravo ! 🎉</p>
+    <div class="champion-confetti">🎊🏅🎊</div>
+</section>
+<?php endif; ?>
 
 <section class="text-center py-4">
     <div class="hero-sub mb-2">EA SPORTS FC 26 · 1v1 · LEAGUE PHASE · 12 JOUEURS · 5 ROUNDS</div>

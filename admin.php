@@ -112,9 +112,43 @@ $accounts = db()->query('SELECT * FROM players ORDER BY is_admin DESC, display_n
 $activityFilter = (int)($_GET['activity_player'] ?? 0) ?: null;
 $activityLog = get_activity_log(120, $activityFilter);
 
+$summary = tournament_summary();
+$deadlinePassed = new DateTime() > new DateTime(APP_DEADLINE);
+
 require __DIR__ . '/includes/header.php';
 ?>
 <h2 class="hero-title mb-4" style="font-size:1.6rem">🛠️ Panneau administrateur</h2>
+
+<!-- ============ Résumé du tournoi ============ -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="glass p-3 text-center h-100">
+            <div class="h3 mb-0" style="color:var(--cyan)"><?= $summary['pct'] ?>%</div>
+            <div class="small text-secondary"><?= $summary['played'] ?>/<?= $summary['total'] ?> matchs joués</div>
+            <div class="progress mt-2" style="height:6px;background:rgba(0,0,0,.08)">
+                <div class="progress-bar" style="width:<?= $summary['pct'] ?>%;background:var(--grad)"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="glass p-3 text-center h-100">
+            <div class="h3 mb-0" style="color:var(--gold)"><?= $summary['remaining'] ?></div>
+            <div class="small text-secondary">Matchs restants</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="glass p-3 text-center h-100">
+            <div class="h3 mb-0" style="color:<?= $summary['disputed']?'var(--pink)':'var(--green)' ?>"><?= $summary['disputed'] ?></div>
+            <div class="small text-secondary">Litige(s)<?= $summary['awaiting'] ? ' · '.$summary['awaiting'].' en attente' : '' ?></div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="glass p-3 text-center h-100">
+            <div class="h3 mb-0" style="color:<?= $deadlinePassed?'var(--pink)':'var(--cyan)' ?>"><?= e(APP_DEADLINE) ?></div>
+            <div class="small text-secondary"><?= $deadlinePassed ? '⚠️ Deadline dépassée' : 'Échéance' ?></div>
+        </div>
+    </div>
+</div>
 
 <!-- ============ Surveillance de l'activité ============ -->
 <div class="glass mb-4">
@@ -334,6 +368,17 @@ require __DIR__ . '/includes/header.php';
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- ============ Sauvegarde / export ============ -->
+<div class="glass mt-4">
+    <div class="card-header-fifa">💾 Sauvegarde &amp; export</div>
+    <div class="p-3 d-flex flex-wrap gap-2 align-items-center">
+        <a href="export.php?type=sql" class="btn btn-sm btn-fifa">⬇️ Sauvegarde SQL complète</a>
+        <a href="export.php?type=standings" class="btn btn-sm btn-outline-info">📊 Classement (CSV)</a>
+        <a href="export.php?type=matches" class="btn btn-sm btn-outline-info">📅 Matchs (CSV)</a>
+        <span class="text-secondary small ms-auto">La sauvegarde SQL contient toutes les données (joueurs, matchs, preuves, bracket, journal).</span>
     </div>
 </div>
 

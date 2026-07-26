@@ -4,6 +4,8 @@ $currentUser = current_user();
 $page = $page ?? '';
 $daysLeft = (new DateTime())->diff(new DateTime(APP_DEADLINE))->days;
 $deadlinePassed = new DateTime() > new DateTime(APP_DEADLINE);
+$navPending = ($currentUser && empty($currentUser['is_admin']))
+    ? pending_matches_count((int)$currentUser['id']) : 0;
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -32,9 +34,17 @@ $deadlinePassed = new DateTime() > new DateTime(APP_DEADLINE);
                 <li class="nav-item"><a class="nav-link <?= $page==='home'?'active':'' ?>" href="index.php">Accueil</a></li>
                 <li class="nav-item"><a class="nav-link <?= $page==='standings'?'active':'' ?>" href="standings.php">Classement</a></li>
                 <li class="nav-item"><a class="nav-link <?= $page==='matches'?'active':'' ?>" href="matches.php">Matchs</a></li>
+                <li class="nav-item"><a class="nav-link <?= $page==='h2h'?'active':'' ?>" href="h2h.php">Face-à-face</a></li>
                 <li class="nav-item"><a class="nav-link <?= $page==='bracket'?'active':'' ?>" href="bracket.php">Phase finale</a></li>
                 <?php if ($currentUser): ?>
-                    <li class="nav-item"><a class="nav-link <?= $page==='profile'?'active':'' ?>" href="profile.php">Mes matchs</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link position-relative <?= $page==='profile'?'active':'' ?>" href="profile.php">
+                            Mes matchs
+                            <?php if ($navPending > 0): ?>
+                                <span class="nav-pending-badge" title="<?= (int)$navPending ?> match(s) à jouer"><?= (int)$navPending ?></span>
+                            <?php endif; ?>
+                        </a>
+                    </li>
                 <?php endif; ?>
                 <?php if ($currentUser && $currentUser['is_admin']): ?>
                     <li class="nav-item"><a class="nav-link <?= $page==='admin'?'active':'' ?>" href="admin.php">Admin</a></li>

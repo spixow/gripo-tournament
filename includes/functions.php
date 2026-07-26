@@ -299,6 +299,76 @@ function status_label(string $status): array
     };
 }
 
+/* -------------------- Statistiques & indicateurs -------------------- */
+
+/** Nombre de matchs non terminés d'un joueur. */
+function pending_matches_count(int $playerId): int
+{
+    $stmt = db()->prepare(
+        "SELECT COUNT(*) FROM matches WHERE (home_id = ? OR away_id = ?) AND status <> 'completed'"
+    );
+    $stmt->execute([$playerId, $playerId]);
+    return (int)$stmt->fetchColumn();
+}
+
+/** Résumé global du tournoi (pour le dashboard admin). */
+function tournament_summary(): array
+{
+    $total     = (int)db()->query('SELECT COUNT(*) FROM matches')->fetchColumn();
+    $played    = (int)db()->query("SELECT COUNT(*) FROM matches WHERE status = 'completed'")->fetchColumn();
+    $disputed  = (int)db()->query("SELECT COUNT(*) FROM matches WHERE status = 'disputed'")->fetchColumn();
+    $awaiting  = (int)db()->query("SELECT COUNT(*) FROM matches WHERE status = 'awaiting'")->fetchColumn();
+    $pct       = $total > 0 ? (int)round($played / $total * 100) : 0;
+    return [
+        'total' => $total, 'played' => $played, 'remaining' => $total - $played,
+        'disputed' => $disputed, 'awaiting' => $awaiting, 'pct' => $pct,
+    ];
+}
+
+/** Joueurs ayant encore des matchs à jouer (retardataires), avec le compte. */
+function players_with_pending(): array
+{
+    $sql = "SELECT p.id, p.display_name, p.avatar_color, COUNT(*) AS pending
+            FROM matches m
+            JOIN players p ON p.id = m.home_id OR p.id = m.away_id
+            WHERE m.status <> 'completed'
+            GROUP BY p.id, p.display_name, p.avatar_color
+            ORDER BY pending DESC, p.display_name";
+    return db()->query($sql)->fetchAll();
+}
+
+/**
+ * Données de confrontation directe entre deux joueurs.
+ * Retourne les matchs terminés qui les opposent + le bilan.
+ */
+function h2h_data(int $aId, int $bId): array
+{
+    $sql = "SELECT m.*,
+                   h.display_name AS home_name, a.display_name AS away_name
+            FROM matches m
+            JOIN players h ON h.id = m.home_id
+            JOIN players a ON a.id = m.away_id
+            WHERE m.status = 'completed'
+              AND ((m.home_id = :a AND m.away_id = :b) OR (m.home_id = :b2 AND m.away_id = :a2))
+            ORDER BY m.round";
+    $stmt = db()->prepare($sql);
+    $stmt->execute([':a' => $aId, ':b' => $bId, ':a2' => $aId, ':b2' => $bId]);
+    $matches = $stmt->fetchAll();
+
+    $tally = ['a_win' => 0, 'b_win' => 0, 'draw' => 0, 'a_goals' => 0, 'b_goals' => 0];
+    foreach ($matches as $m) {
+        $aIsHome = (int)$m['home_id'] === $aId;
+        $aGoals = $aIsHome ? (int)$m['home_score'] : (int)$m['away_score'];
+        $bGoals = $aIsHome ? (int)$m['away_score'] : (int)$m['home_score'];
+        $tally['a_goals'] += $aGoals;
+        $tally['b_goals'] += $bGoals;
+        if ($aGoals > $bGoals)      $tally['a_win']++;
+        elseif ($aGoals < $bGoals)  $tally['b_win']++;
+        else                        $tally['draw']++;
+    }
+    return ['matches' => $matches, 'tally' => $tally];
+}
+
 /* -------------------- Forme récente d'un joueur -------------------- */
 
 /**
