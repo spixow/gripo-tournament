@@ -7,6 +7,7 @@ CREATE DATABASE IF NOT EXISTS `tournoi_fifa`
 USE `tournoi_fifa`;
 
 -- ---------- Joueurs / Comptes ----------
+DROP TABLE IF EXISTS `activity_log`;
 DROP TABLE IF EXISTS `bracket_matches`;
 DROP TABLE IF EXISTS `match_submissions`;
 DROP TABLE IF EXISTS `matches`;
@@ -75,4 +76,17 @@ CREATE TABLE `bracket_matches` (
   FOREIGN KEY (`player1_id`) REFERENCES `players`(`id`) ON DELETE SET NULL,
   FOREIGN KEY (`player2_id`) REFERENCES `players`(`id`) ON DELETE SET NULL,
   FOREIGN KEY (`winner_id`)  REFERENCES `players`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------- Journal d'activité (surveillance admin) ----------
+CREATE TABLE `activity_log` (
+  `id`         INT AUTO_INCREMENT PRIMARY KEY,
+  `player_id`  INT NULL,
+  `username`   VARCHAR(80) NULL,
+  `action`     VARCHAR(50) NOT NULL,
+  `details`    VARCHAR(255) NULL,
+  `ip`         VARCHAR(45) NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_player` (`player_id`),
+  INDEX `idx_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

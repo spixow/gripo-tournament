@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'passw
         } else {
             db()->prepare('UPDATE players SET password_hash = ? WHERE id = ?')
                 ->execute([password_hash($new, PASSWORD_DEFAULT), $user['id']]);
+            log_activity('password_change', 'A changé son mot de passe', $user);
             flash('success', 'Mot de passe mis à jour.');
         }
     }

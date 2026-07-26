@@ -478,3 +478,98 @@ function bracket_champion(): ?array
     }
     return null;
 }
+
+/* -------------------- Journal d'activité (surveillance) -------------------- */
+
+/** Crée la table du journal si elle n'existe pas. */
+function ensure_activity_table(): void
+{
+    db()->exec(
+        "CREATE TABLE IF NOT EXISTS `activity_log` (
+          `id`         INT AUTO_INCREMENT PRIMARY KEY,
+          `player_id`  INT NULL,
+          `username`   VARCHAR(80) NULL,
+          `action`     VARCHAR(50) NOT NULL,
+          `details`    VARCHAR(255) NULL,
+          `ip`         VARCHAR(45) NULL,
+          `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX `idx_player` (`player_id`),
+          INDEX `idx_created` (`created_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+}
+
+/**
+ * Enregistre une action utilisateur dans le journal d'activité.
+ * Ne lève jamais d'exception (la journalisation ne doit pas casser l'app).
+ */
+function log_activity(string $action, string $details = '', ?array $user = null): void
+{
+    $u  = $user ?? current_user();
+    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+    $params = [
+        $u['id'] ?? null,
+        $u['username'] ?? ($u['display_name'] ?? null),
+        $action,
+        mb_substr($details, 0, 255),
+        $ip,
+    ];
+    $sql = 'INSERT INTO activity_log (player_id, username, action, details, ip) VALUES (?,?,?,?,?)';
+    try {
+        db()->prepare($sql)->execute($params);
+    } catch (PDOException $e) {
+        // Table absente : on la crée puis on réessaie une fois
+        try {
+            ensure_activity_table();
+            db()->prepare($sql)->execute($params);
+        } catch (Throwable $ignore) { /* silencieux */ }
+    }
+}
+
+/** Récupère les dernières entrées du journal (optionnellement filtrées par joueur). */
+function get_activity_log(int $limit = 100, ?int $playerId = null): array
+{
+    try {
+        if ($playerId) {
+            $stmt = db()->prepare(
+                'SELECT a.*, p.avatar_color FROM activity_log a
+                 LEFT JOIN players p ON p.id = a.player_id
+                 WHERE a.player_id = ? ORDER BY a.id DESC LIMIT ?'
+            );
+            $stmt->bindValue(1, $playerId, PDO::PARAM_INT);
+            $stmt->bindValue(2, $limit, PDO::PARAM_INT);
+        } else {
+            $stmt = db()->prepare(
+                'SELECT a.*, p.avatar_color FROM activity_log a
+                 LEFT JOIN players p ON p.id = a.player_id
+                 ORDER BY a.id DESC LIMIT ?'
+            );
+            $stmt->bindValue(1, $limit, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll();
+    } catch (PDOException $e) {
+        return [];
+    }
+}
+
+/** Libellé + couleur d'un type d'action pour l'affichage. */
+function activity_label(string $action): array
+{
+    return match ($action) {
+        'login'           => ['Connexion', 'success'],
+        'login_failed'    => ['Échec connexion', 'danger'],
+        'logout'          => ['Déconnexion', 'secondary'],
+        'score_submit'    => ['Saisie de score', 'info'],
+        'match_validated' => ['Match validé', 'success'],
+        'match_disputed'  => ['Litige', 'warning'],
+        'password_change' => ['Mot de passe', 'primary'],
+        'admin_score'     => ['Score forcé (admin)', 'info'],
+        'admin_reset'     => ['Reset match (admin)', 'warning'],
+        'admin_password'  => ['MDP modifié (admin)', 'primary'],
+        'bracket_generate'=> ['Bracket généré', 'info'],
+        'bracket_clear'   => ['Bracket supprimé', 'warning'],
+        'bracket_score'   => ['Score bracket', 'info'],
+        default           => [ucfirst($action), 'secondary'],
+    };
+}

@@ -61,6 +61,22 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
     $log[] = "Table bracket_matches prête.";
+
+    // 3) Table du journal d'activité
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS `activity_log` (
+          `id`         INT AUTO_INCREMENT PRIMARY KEY,
+          `player_id`  INT NULL,
+          `username`   VARCHAR(80) NULL,
+          `action`     VARCHAR(50) NOT NULL,
+          `details`    VARCHAR(255) NULL,
+          `ip`         VARCHAR(45) NULL,
+          `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX `idx_player` (`player_id`),
+          INDEX `idx_created` (`created_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    $log[] = "Table activity_log prête.";
 } catch (Throwable $ex) {
     $err[] = $ex->getMessage();
 }

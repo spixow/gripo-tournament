@@ -19,12 +19,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             db()->prepare("UPDATE matches SET home_score=?, away_score=?, status='completed', completed_at=NOW() WHERE id=?")
                 ->execute([$hs, $as, $matchId]);
+            log_activity('admin_score', "Match #$matchId foré à $hs:$as");
             flash('success', "Score forcé pour le match #$matchId.");
         }
     } elseif ($action === 'reset') {
         db()->prepare("UPDATE matches SET home_score=NULL, away_score=NULL, status='pending', completed_at=NULL WHERE id=?")
             ->execute([$matchId]);
         db()->prepare("DELETE FROM match_submissions WHERE match_id=?")->execute([$matchId]);
+        log_activity('admin_reset', "Match #$matchId réinitialisé");
         flash('warning', "Match #$matchId réinitialisé.");
     } elseif ($action === 'set_password') {
         $pid = (int)($_POST['player_id'] ?? 0);
@@ -37,17 +39,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             db()->prepare('UPDATE players SET password_hash = ? WHERE id = ?')
                 ->execute([password_hash($new, PASSWORD_DEFAULT), $pid]);
+            log_activity('admin_password', 'Mot de passe modifié pour ' . $target['display_name'] . ' (' . $target['username'] . ')');
             flash('success', 'Mot de passe mis à jour pour ' . $target['display_name'] . '.');
         }
     } elseif ($action === 'gen_bracket') {
         try {
             generate_bracket();
+            log_activity('bracket_generate', 'Phase finale générée');
             flash('success', 'Phase finale générée depuis le classement actuel.');
         } catch (Throwable $ex) {
             flash('danger', $ex->getMessage());
         }
     } elseif ($action === 'clear_bracket') {
         clear_bracket();
+        log_activity('bracket_clear', 'Phase finale supprimée');
         flash('warning', 'Phase finale réinitialisée.');
     } elseif ($action === 'bracket_score') {
         $code = $_POST['code'] ?? '';
@@ -58,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             try {
                 save_bracket_result($code, $s1, $s2);
+                log_activity('bracket_score', "$code : $s1:$s2");
                 flash('success', "Résultat enregistré ($code).");
             } catch (Throwable $ex) {
                 flash('danger', $ex->getMessage());
@@ -82,9 +88,72 @@ foreach (matches_by_round() as $games) { foreach ($games as $g) $allMatches[] = 
 $bracket = bracket_generated() ? get_bracket() : [];
 $accounts = db()->query('SELECT * FROM players ORDER BY is_admin DESC, display_name')->fetchAll();
 
+$activityFilter = (int)($_GET['activity_player'] ?? 0) ?: null;
+$activityLog = get_activity_log(120, $activityFilter);
+
 require __DIR__ . '/includes/header.php';
 ?>
 <h2 class="hero-title mb-4" style="font-size:1.6rem">🛠️ Panneau administrateur</h2>
+
+<!-- ============ Surveillance de l'activité ============ -->
+<div class="glass mb-4">
+    <div class="card-header-fifa">
+        🕵️ Surveillance de l'activité
+        <form method="get" class="ms-auto d-flex align-items-center gap-2">
+            <select name="activity_player" class="form-select form-select-sm" style="min-width:170px" onchange="this.form.submit()">
+                <option value="0">Tous les utilisateurs</option>
+                <?php foreach ($accounts as $acc): ?>
+                    <option value="<?= (int)$acc['id'] ?>" <?= $activityFilter === (int)$acc['id'] ? 'selected' : '' ?>>
+                        <?= e($acc['display_name']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </form>
+    </div>
+    <div class="p-3">
+        <?php if (empty($activityLog)): ?>
+            <p class="text-secondary mb-0">Aucune activité enregistrée pour le moment.</p>
+        <?php else: ?>
+            <div class="table-responsive" style="max-height:460px;overflow:auto">
+                <table class="table table-fifa mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th style="white-space:nowrap">Date / heure</th>
+                            <th>Utilisateur</th>
+                            <th>Action</th>
+                            <th>Détails</th>
+                            <th class="d-none d-md-table-cell">IP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($activityLog as $a):
+                            [$lbl, $col] = activity_label($a['action']);
+                            $when = date('d/m/Y H:i', strtotime($a['created_at']));
+                            $uname = $a['username'] ?? '—';
+                            $color = $a['avatar_color'] ?? '#889';
+                            ?>
+                            <tr>
+                                <td class="small text-secondary" style="white-space:nowrap"><?= e($when) ?></td>
+                                <td style="white-space:nowrap">
+                                    <span class="avatar me-1" style="background:<?= e($color) ?>;width:24px;height:24px;font-size:.7rem">
+                                        <?= e(mb_strtoupper(mb_substr($uname, 0, 1))) ?>
+                                    </span>
+                                    <?= e($uname) ?>
+                                </td>
+                                <td><span class="badge text-bg-<?= $col ?>"><?= e($lbl) ?></span></td>
+                                <td class="small"><?= e($a['details'] ?? '') ?></td>
+                                <td class="small text-secondary d-none d-md-table-cell"><?= e($a['ip'] ?? '') ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="small text-secondary mt-2">
+                <?= count($activityLog) ?> dernière(s) action(s) affichée(s)<?= $activityFilter ? ' (filtré)' : '' ?>.
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
 
 <div class="glass mb-4">
     <div class="card-header-fifa">⚠️ Litiges &amp; matchs en attente (<?= count($disputed) ?>)</div>

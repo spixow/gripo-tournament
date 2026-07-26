@@ -45,6 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isParticipant && $match['status'] 
             ':hs2' => $hs, ':as2' => $as, ':proof2' => $proof,
         ]);
 
+        $matchLabel = $match['home_name'] . ' vs ' . $match['away_name'];
+        log_activity('score_submit', "R{$match['round']} $matchLabel — a déclaré $hs:$as"
+            . ($proof ? ' (avec preuve)' : ' (sans preuve)'), $user);
+
         // Recharger les soumissions
         $submissions = submissions_of_match($matchId);
         $homeSub = $submissions[$match['home_id']] ?? null;
@@ -60,11 +64,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isParticipant && $match['status'] 
                      completed_at = NOW() WHERE id = ?"
                 );
                 $upd->execute([(int)$homeSub['home_score'], (int)$homeSub['away_score'], $matchId]);
+                log_activity('match_validated', "$matchLabel — résultat "
+                    . (int)$homeSub['home_score'] . ':' . (int)$homeSub['away_score'], $user);
                 flash('success', '✅ Scores concordants — match validé et classement mis à jour !');
             } else {
                 // Désaccord → litige
                 $pdo->prepare("UPDATE matches SET status = 'disputed', home_score = NULL, away_score = NULL WHERE id = ?")
                     ->execute([$matchId]);
+                log_activity('match_disputed', "$matchLabel — scores non concordants", $user);
                 flash('warning', '⚠️ Les scores saisis ne concordent pas. Le match est en litige : vérifiez avec votre adversaire ou contactez l\'admin.');
             }
         } else {

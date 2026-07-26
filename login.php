@@ -18,9 +18,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user && password_verify($password, $user['password_hash'])) {
             session_regenerate_id(true);
             $_SESSION['user_id'] = $user['id'];
+            log_activity('login', 'Connexion réussie', $user);
             flash('success', 'Bienvenue ' . $user['display_name'] . ' !');
             redirect('index.php');
         } else {
+            log_activity('login_failed', 'Identifiant tenté : ' . $username, null);
             $error = 'Nom d\'utilisateur ou mot de passe incorrect.';
         }
     }
