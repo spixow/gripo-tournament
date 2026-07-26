@@ -249,7 +249,7 @@ require __DIR__ . '/includes/header.php';
                             </div>
                             <?php if ($sub['proof_image']): ?>
                                 <a href="proof.php?id=<?= (int)$sub['id'] ?>" target="_blank">
-                                    <img src="proof.php?id=<?= (int)$sub['id'] ?>" class="proof-thumb" alt="Preuve" style="max-height:180px" loading="lazy">
+                                    <img src="proof.php?id=<?= (int)$sub['id'] ?>" class="proof-thumb" alt="Preuve" style="max-height:180px" loading="lazy" onerror="proofBroken(this)">
                                 </a>
                             <?php else: ?>
                                 <span class="text-secondary small">Aucune preuve jointe.</span>
