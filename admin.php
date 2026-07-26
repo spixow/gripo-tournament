@@ -34,6 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $target = get_player($pid);
         if (!$target) {
             flash('danger', 'Compte introuvable.');
+        } elseif ($target['username'] === 'admin' && $admin['username'] !== 'admin') {
+            flash('danger', 'Le super administrateur ne peut être modifié que par lui-même.');
         } elseif (strlen($new) < 6) {
             flash('danger', 'Le mot de passe doit contenir au moins 6 caractères.');
         } else {
@@ -73,6 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $target = get_player($pid);
         if (!$target) {
             flash('danger', 'Compte introuvable.');
+        } elseif ($target['username'] === 'admin') {
+            flash('danger', 'Le super administrateur est protégé : son rôle ne peut pas être modifié.');
         } elseif ($pid === (int)$admin['id']) {
             flash('danger', 'Vous ne pouvez pas modifier votre propre statut administrateur.');
         } else {
@@ -559,13 +563,17 @@ require __DIR__ . '/includes/header.php';
                 <thead><tr><th>Compte</th><th>Nom d'utilisateur</th><th>Rôle</th><th>Nouveau mot de passe</th></tr></thead>
                 <tbody>
                 <?php foreach ($accounts as $acc):
-                    $isSelf = (int)$acc['id'] === (int)$admin['id']; ?>
+                    $isSelf = (int)$acc['id'] === (int)$admin['id'];
+                    $rowIsSuper = ($acc['username'] === 'admin');
+                    // Le super admin n'est modifiable que par lui-même
+                    $canEditRow = !$rowIsSuper || ($admin['username'] === 'admin'); ?>
                     <tr>
                         <td class="fw-semibold" style="white-space:nowrap">
                             <span class="avatar me-1" style="background:<?= e($acc['avatar_color']) ?>;width:26px;height:26px;font-size:.75rem">
                                 <?= e(mb_strtoupper(mb_substr($acc['display_name'],0,1))) ?>
                             </span>
                             <?= e($acc['display_name']) ?>
+                            <?php if ($rowIsSuper): ?><span class="badge text-bg-dark ms-1" title="Super administrateur protégé">🛡️ Super</span><?php endif; ?>
                         </td>
                         <td><code><?= e($acc['username']) ?></code></td>
                         <td style="white-space:nowrap">
@@ -574,7 +582,9 @@ require __DIR__ . '/includes/header.php';
                             <?php else: ?>
                                 <span class="badge text-bg-secondary">Joueur</span>
                             <?php endif; ?>
-                            <?php if ($isSelf): ?>
+                            <?php if ($rowIsSuper): ?>
+                                <span class="text-secondary small ms-1">🔒 protégé</span>
+                            <?php elseif ($isSelf): ?>
                                 <span class="text-secondary small ms-1">(vous)</span>
                             <?php else: ?>
                                 <form method="post" class="d-inline"
@@ -589,14 +599,18 @@ require __DIR__ . '/includes/header.php';
                             <?php endif; ?>
                         </td>
                         <td style="min-width:280px">
-                            <form method="post" class="d-flex gap-1">
-                                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                                <input type="hidden" name="action" value="set_password">
-                                <input type="hidden" name="player_id" value="<?= (int)$acc['id'] ?>">
-                                <input type="text" name="new_password" class="form-control form-control-sm"
-                                       placeholder="Nouveau mot de passe" minlength="6" required>
-                                <button class="btn btn-sm btn-fifa">Changer</button>
-                            </form>
+                            <?php if (!$canEditRow): ?>
+                                <span class="text-secondary small">🔒 Réservé au super administrateur</span>
+                            <?php else: ?>
+                                <form method="post" class="d-flex gap-1">
+                                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                                    <input type="hidden" name="action" value="set_password">
+                                    <input type="hidden" name="player_id" value="<?= (int)$acc['id'] ?>">
+                                    <input type="text" name="new_password" class="form-control form-control-sm"
+                                           placeholder="Nouveau mot de passe" minlength="6" required>
+                                    <button class="btn btn-sm btn-fifa">Changer</button>
+                                </form>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
