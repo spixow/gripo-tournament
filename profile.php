@@ -45,6 +45,9 @@ require __DIR__ . '/includes/header.php';
             <?= e(mb_strtoupper(mb_substr($user['display_name'],0,1))) ?>
         </span>
         <?= e($user['display_name']) ?>
+        <?php if (!empty($user['team'])): ?>
+            <span class="badge text-bg-info ms-2" style="text-transform:none;letter-spacing:0">🎽 <?= e($user['team']) ?></span>
+        <?php endif; ?>
     </div>
     <div class="p-3">
         <div class="row text-center g-2">

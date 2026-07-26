@@ -81,6 +81,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             log_activity('settings', "Deadline modifiée : $d $t");
             flash('success', 'Deadline mise à jour.');
         }
+    } elseif ($action === 'reset_tournament') {
+        reset_tournament_results();
+        log_activity('tournament_reset', 'Tournoi réinitialisé (résultats effacés)');
+        flash('warning', 'Tournoi réinitialisé : tous les matchs sont de nouveau « à jouer ».');
+    } elseif ($action === 'regenerate_matches') {
+        try {
+            $n = regenerate_group_matches();
+            log_activity('tournament_reset', "Matchs de groupe régénérés ($n matchs)");
+            flash('success', "Matchs de la phase de groupe régénérés ($n rencontres).");
+        } catch (Throwable $ex) {
+            flash('danger', 'Erreur : ' . $ex->getMessage());
+        }
+    } elseif ($action === 'set_team') {
+        ensure_team_column();
+        $pid  = (int)($_POST['player_id'] ?? 0);
+        $team = trim($_POST['team'] ?? '');
+        $target = get_player($pid);
+        if (!$target) {
+            flash('danger', 'Joueur introuvable.');
+        } else {
+            db()->prepare('UPDATE players SET team = ? WHERE id = ?')
+                ->execute([$team !== '' ? mb_substr($team, 0, 60) : null, $pid]);
+            log_activity('set_team', $target['display_name'] . ' → ' . ($team !== '' ? $team : '(aucune)'));
+            flash('success', 'Équipe mise à jour pour ' . $target['display_name'] . '.');
+        }
     } elseif ($action === 'gen_bracket') {
         try {
             generate_bracket();
@@ -125,6 +150,7 @@ $allMatches = [];
 foreach (matches_by_round() as $games) { foreach ($games as $g) $allMatches[] = $g; }
 
 $bracket = bracket_generated() ? get_bracket() : [];
+ensure_team_column();
 $accounts = db()->query('SELECT * FROM players ORDER BY is_admin DESC, display_name')->fetchAll();
 
 $activityFilter = (int)($_GET['activity_player'] ?? 0) ?: null;
@@ -213,6 +239,26 @@ require __DIR__ . '/includes/header.php';
                 </form>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- ============ Gestion du tournoi ============ -->
+<div class="glass mb-4">
+    <div class="card-header-fifa">🔄 Gestion du tournoi</div>
+    <div class="p-3 d-flex flex-wrap gap-2 align-items-center">
+        <form method="post" onsubmit="return confirm('Réinitialiser le tournoi ? Tous les scores, soumissions, réclamations et la phase finale seront effacés. Les matchs repassent « à jouer ».');">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="reset_tournament">
+            <button class="btn btn-sm btn-outline-danger">♻️ Réinitialiser le tournoi</button>
+        </form>
+        <form method="post" onsubmit="return confirm('Régénérer TOUS les matchs de la phase de groupe ? Les matchs actuels et leurs données seront supprimés puis recréés.');">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="regenerate_matches">
+            <button class="btn btn-sm btn-fifa">🔁 Régénérer les matchs du groupe</button>
+        </form>
+        <span class="text-secondary small ms-auto">
+            « Réinitialiser » efface les résultats (garde les matchs). « Régénérer » recrée les 30 rencontres du programme officiel.
+        </span>
     </div>
 </div>
 
@@ -397,6 +443,43 @@ require __DIR__ . '/includes/header.php';
             <?php endforeach; endif; ?>
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- ============ Affectation des équipes ============ -->
+<div class="glass mt-4">
+    <div class="card-header-fifa">🎽 Affectation des équipes (FIFA)</div>
+    <div class="p-3">
+        <p class="text-secondary small">
+            Attribue une équipe à chaque joueur. Cette information n'est <strong>pas modifiable par le joueur</strong>.
+        </p>
+        <div class="table-responsive">
+            <table class="table table-fifa mb-0 align-middle">
+                <thead><tr><th>Joueur</th><th>Équipe</th></tr></thead>
+                <tbody>
+                <?php foreach ($accounts as $acc): if (!empty($acc['is_admin'])) continue; ?>
+                    <tr>
+                        <td class="fw-semibold" style="white-space:nowrap">
+                            <span class="avatar me-1" style="background:<?= e($acc['avatar_color']) ?>;width:26px;height:26px;font-size:.75rem">
+                                <?= e(mb_strtoupper(mb_substr($acc['display_name'],0,1))) ?>
+                            </span>
+                            <?= e($acc['display_name']) ?>
+                        </td>
+                        <td style="min-width:280px">
+                            <form method="post" class="d-flex gap-1">
+                                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                                <input type="hidden" name="action" value="set_team">
+                                <input type="hidden" name="player_id" value="<?= (int)$acc['id'] ?>">
+                                <input type="text" name="team" class="form-control form-control-sm" maxlength="60"
+                                       placeholder="ex : Real Madrid, PSG…" value="<?= e($acc['team'] ?? '') ?>">
+                                <button class="btn btn-sm btn-fifa">Enregistrer</button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

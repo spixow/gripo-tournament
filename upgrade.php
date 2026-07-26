@@ -29,6 +29,7 @@ try {
         'photo_url'    => "ADD COLUMN `photo_url` VARCHAR(255) NULL AFTER `avatar_color`",
         'position'     => "ADD COLUMN `position` VARCHAR(5) NULL AFTER `photo_url`",
         'ovr_override' => "ADD COLUMN `ovr_override` INT NULL AFTER `position`",
+        'team'         => "ADD COLUMN `team` VARCHAR(60) NULL AFTER `avatar_color`",
     ];
     foreach ($newCols as $col => $ddl) {
         if (!column_exists($pdo, 'players', $col)) {

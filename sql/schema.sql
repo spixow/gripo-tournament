@@ -22,6 +22,7 @@ CREATE TABLE `players` (
   `display_name` VARCHAR(80)  NOT NULL,
   `password_hash`VARCHAR(255) NOT NULL,
   `avatar_color` VARCHAR(7)   NOT NULL DEFAULT '#00e5ff',
+  `team`         VARCHAR(60)  NULL,
   `photo_url`    VARCHAR(255) NULL,
   `position`     VARCHAR(5)   NULL,
   `ovr_override` INT          NULL,

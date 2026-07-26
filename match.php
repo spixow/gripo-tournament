@@ -101,6 +101,8 @@ $homeSub = $submissions[$match['home_id']] ?? null;
 $awaySub = $submissions[$match['away_id']] ?? null;
 $mySubmission = $user ? ($submissions[$user['id']] ?? null) : null;
 [$statusLbl, $statusCol] = status_label($match['status']);
+$homeTeam = get_player((int)$match['home_id'])['team'] ?? '';
+$awayTeam = get_player((int)$match['away_id'])['team'] ?? '';
 
 require __DIR__ . '/includes/header.php';
 ?>
@@ -120,6 +122,7 @@ require __DIR__ . '/includes/header.php';
                 </div>
                 <div class="h5 mb-0"><?= e($match['home_name']) ?></div>
                 <div class="small text-secondary">Domicile</div>
+                <?php if ($homeTeam): ?><div class="small" style="color:var(--cyan)">🎽 <?= e($homeTeam) ?></div><?php endif; ?>
             </div>
             <div class="col-2">
                 <?php if ($match['status']==='completed'): ?>
@@ -136,6 +139,7 @@ require __DIR__ . '/includes/header.php';
                 </div>
                 <div class="h5 mb-0"><?= e($match['away_name']) ?></div>
                 <div class="small text-secondary">Extérieur</div>
+                <?php if ($awayTeam): ?><div class="small" style="color:var(--cyan)">🎽 <?= e($awayTeam) ?></div><?php endif; ?>
             </div>
         </div>
     </div>

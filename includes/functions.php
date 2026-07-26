@@ -623,6 +623,8 @@ function activity_label(string $action): array
         'claim_status'    => ['Réclamation MàJ', 'warning'],
         'claim_message'   => ['Message réclamation', 'info'],
         'settings'        => ['Réglages', 'primary'],
+        'tournament_reset'=> ['Tournoi réinitialisé', 'danger'],
+        'set_team'        => ['Équipe assignée', 'info'],
         default           => [ucfirst($action), 'secondary'],
     };
 }
@@ -868,3 +870,78 @@ function get_announcement(): ?array
     if ($text === '' || !$active) return null;
     return ['text' => $text, 'active' => true];
 }
+
+/* -------------------- Gestion du tournoi (admin) -------------------- */
+
+/** Programme officiel de la phase de groupe (round => [ [domicile, extérieur], ... ]). */
+function tournament_schedule(): array
+{
+    return [
+        1 => [['Smock','Dyxow'], ['Fuska','Khalil'], ['Lhaaj','Viking'], ['Hajib','Adam'], ['Nabil','No Mercy'], ['Araknocci','Imad']],
+        2 => [['Smock','Lhaaj'], ['Fuska','Hajib'], ['Dyxow','Adam'], ['Khalil','Viking'], ['Nabil','Araknocci'], ['No Mercy','Imad']],
+        3 => [['Smock','Nabil'], ['Fuska','No Mercy'], ['Dyxow','Araknocci'], ['Khalil','Imad'], ['Lhaaj','Hajib'], ['Viking','Adam']],
+        4 => [['Viking','Smock'], ['Adam','Fuska'], ['Lhaaj','Dyxow'], ['Hajib','Khalil'], ['Imad','Nabil'], ['No Mercy','Araknocci']],
+        5 => [['Imad','Smock'], ['Araknocci','Fuska'], ['Dyxow','No Mercy'], ['Khalil','Nabil'], ['Adam','Lhaaj'], ['Viking','Hajib']],
+    ];
+}
+
+/**
+ * Réinitialise les résultats du tournoi (soft reset) :
+ * remet tous les matchs "à jouer", supprime soumissions, réclamations et bracket.
+ * Conserve les matchs, les joueurs et les équipes.
+ */
+function reset_tournament_results(): void
+{
+    $pdo = db();
+    $pdo->exec('DELETE FROM bracket_matches');
+    try { $pdo->exec('DELETE FROM claim_messages'); $pdo->exec('DELETE FROM claims'); } catch (Throwable $e) {}
+    $pdo->exec('DELETE FROM match_submissions');
+    $pdo->exec("UPDATE matches SET home_score=NULL, away_score=NULL, status='pending', completed_at=NULL");
+}
+
+/**
+ * (Re)génère entièrement les matchs de la phase de groupe à partir du programme officiel.
+ * Supprime les anciens matchs (et données liées) puis recrée les 30 rencontres.
+ * Retourne le nombre de matchs créés.
+ */
+function regenerate_group_matches(): int
+{
+    $pdo = db();
+    $ids = [];
+    foreach ($pdo->query('SELECT id, display_name FROM players')->fetchAll() as $p) {
+        $ids[$p['display_name']] = (int)$p['id'];
+    }
+    $pdo->exec('DELETE FROM bracket_matches');
+    try { $pdo->exec('DELETE FROM claim_messages'); $pdo->exec('DELETE FROM claims'); } catch (Throwable $e) {}
+    $pdo->exec('DELETE FROM match_submissions');
+    $pdo->exec('DELETE FROM matches');
+
+    $ins = $pdo->prepare('INSERT INTO matches (round, match_number, home_id, away_id, status) VALUES (?, ?, ?, ?, "pending")');
+    $count = 0;
+    foreach (tournament_schedule() as $round => $games) {
+        $num = 1;
+        foreach ($games as [$home, $away]) {
+            if (!isset($ids[$home]) || !isset($ids[$away])) continue;
+            $ins->execute([$round, $num++, $ids[$home], $ids[$away]]);
+            $count++;
+        }
+    }
+    return $count;
+}
+
+/* -------------------- Équipe FIFA du joueur (admin) -------------------- */
+
+/** Ajoute la colonne `team` à la table players si elle n'existe pas (auto-migration). */
+function ensure_team_column(): void
+{
+    try {
+        $exists = (int)db()->query(
+            "SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'players' AND COLUMN_NAME = 'team'"
+        )->fetchColumn();
+        if (!$exists) {
+            db()->exec("ALTER TABLE `players` ADD COLUMN `team` VARCHAR(60) NULL AFTER `avatar_color`");
+        }
+    } catch (Throwable $e) { /* silencieux */ }
+}
+
