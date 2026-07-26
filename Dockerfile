@@ -17,5 +17,6 @@ EXPOSE 8080
 
 # Serveur PHP intégré (mono-processus, suffisant pour ce tournoi entre amis)
 # Évite le conflit Apache "More than one MPM loaded".
-CMD ["sh", "-c", "php -S 0.0.0.0:${PORT} -t /var/www/html"]
+# Limites d'upload relevées (photos volumineuses).
+CMD ["sh", "-c", "php -d upload_max_filesize=50M -d post_max_size=55M -d memory_limit=256M -d max_file_uploads=20 -S 0.0.0.0:${PORT} -t /var/www/html"]
 

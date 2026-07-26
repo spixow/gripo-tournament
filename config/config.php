@@ -42,7 +42,7 @@ define('APP_DEADLINE', '2026-07-28');       // date limite (jour)
 define('APP_DEADLINE_TIME', '00:00:00');    // heure limite (minuit)
 define('UPLOAD_DIR', __DIR__ . '/../uploads/');
 define('UPLOAD_URL', 'uploads/');
-define('MAX_UPLOAD_SIZE', 5 * 1024 * 1024); // 5 Mo
+define('MAX_UPLOAD_SIZE', 50 * 1024 * 1024); // 50 Mo (limite haute)
 
 // Nombre de qualifiés directs (demi-finales) et places play-offs
 define('DIRECT_QUALIFIED', 2);

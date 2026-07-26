@@ -180,7 +180,7 @@ require __DIR__ . '/includes/header.php';
                             </label>
                             <input type="file" name="proof" id="fld-proof" accept="image/png,image/jpeg,image/webp" class="form-control"
                                    <?= $mySubmission && $mySubmission['proof_image'] ? '' : '' ?>>
-                            <div class="form-text">JPG, PNG ou WEBP — 5 Mo max. <strong>Obligatoire si vous êtes le vainqueur.</strong></div>
+                            <div class="form-text">JPG, PNG ou WEBP — <?= (int)(MAX_UPLOAD_SIZE / 1048576) ?> Mo max. <strong>Obligatoire si vous êtes le vainqueur.</strong></div>
                         </div>
                         <button class="btn btn-fifa w-100 mt-3 py-2">Envoyer mon score →</button>
                     </form>

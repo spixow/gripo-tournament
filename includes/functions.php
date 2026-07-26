@@ -264,7 +264,7 @@ function handle_proof_upload(string $field): ?string
         throw new RuntimeException("Erreur lors de l'upload de l'image.");
     }
     if ($file['size'] > MAX_UPLOAD_SIZE) {
-        throw new RuntimeException('Image trop volumineuse (max 5 Mo).');
+        throw new RuntimeException('Image trop volumineuse (max ' . (int)(MAX_UPLOAD_SIZE / 1048576) . ' Mo).');
     }
     $finfo = new finfo(FILEINFO_MIME_TYPE);
     $mime = $finfo->file($file['tmp_name']);
