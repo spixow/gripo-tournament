@@ -20,7 +20,7 @@ require __DIR__ . '/includes/header.php';
     <h1 class="hero-title display-5 mb-3">⚽ GRIPO <span style="color:var(--gold)">TOURNAMENT</span></h1>
     <p class="text-secondary mb-4">
         Chaque joueur affronte les autres. Les deux joueurs saisissent le score
-        et joignent une preuve. Le match est validé quand les scores concordent.
+        et peuvent joindre une preuve image (facultative). Le match est validé quand les scores concordent.
     </p>
     <div class="d-flex justify-content-center gap-3 flex-wrap">
         <div class="glass px-4 py-3">
@@ -123,7 +123,7 @@ require __DIR__ . '/includes/header.php';
                 <ul class="mb-0" style="color:var(--muted)">
                     <li>Victoire = <strong style="color:var(--txt)">3 pts</strong>, Nul = <strong style="color:var(--txt)">1 pt</strong>, Défaite = <strong style="color:var(--txt)">0 pt</strong>.</li>
                     <li>Départage : points → différence de buts → buts marqués → confrontation directe.</li>
-                    <li>Après le match, <strong style="color:var(--txt)">les deux joueurs</strong> saisissent le score + une <strong style="color:var(--txt)">preuve image</strong>.</li>
+                    <li>Après le match, <strong style="color:var(--txt)">les deux joueurs</strong> saisissent le score ; la <strong style="color:var(--txt)">preuve image</strong> est facultative (recommandée en cas de litige).</li>
                     <li>Le match est validé automatiquement si les deux scores concordent, sinon il passe en <span class="text-danger">litige</span>.</li>
                     <li>Deadline de la phase de ligue : <strong style="color:var(--gold)"><?= e(APP_DEADLINE) ?></strong>.</li>
                 </ul>

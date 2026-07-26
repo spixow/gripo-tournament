@@ -26,13 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isParticipant && $match['status'] 
             throw new RuntimeException('Scores invalides (entiers entre 0 et 99).');
         }
 
-        // Preuve : obligatoire à la première soumission
+        // Preuve image : facultative
         $proof = handle_proof_upload('proof');
-        if (!$proof && !$mySubmission) {
-            throw new RuntimeException('Une preuve image est obligatoire (capture du score final).');
-        }
         if (!$proof && $mySubmission) {
-            $proof = $mySubmission['proof_image']; // conserver l'ancienne
+            $proof = $mySubmission['proof_image']; // conserver l'ancienne si non renvoyée
         }
 
         $pdo = db();
@@ -157,11 +154,10 @@ require __DIR__ . '/includes/header.php';
                         </div>
                         <div class="mt-3">
                             <label class="form-label small">Preuve image (capture du score final)
-                                <?= $mySubmission ? '<span class="text-secondary">(optionnel si déjà envoyée)</span>' : '<span class="text-danger">*</span>' ?>
+                                <span class="text-secondary">(facultatif)</span>
                             </label>
-                            <input type="file" name="proof" accept="image/png,image/jpeg,image/webp" class="form-control"
-                                   <?= $mySubmission ? '' : 'required' ?>>
-                            <div class="form-text">JPG, PNG ou WEBP — 5 Mo max.</div>
+                            <input type="file" name="proof" accept="image/png,image/jpeg,image/webp" class="form-control">
+                            <div class="form-text">JPG, PNG ou WEBP — 5 Mo max. Recommandé en cas de litige.</div>
                         </div>
                         <button class="btn btn-fifa w-100 mt-3 py-2">Envoyer mon score →</button>
                     </form>

@@ -64,16 +64,35 @@ function slugify_username(string $name): string
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        // 1) Connexion au serveur MySQL (sans base)
-        $dsn = 'mysql:host=' . DB_HOST . ';charset=' . DB_CHARSET;
-        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        ]);
+        $port = defined('DB_PORT') ? DB_PORT : '3306';
 
-        // 2) Exécuter le schéma
+        // 1) Connexion au serveur MySQL (sans base d'abord)
+        try {
+            $pdo = new PDO(
+                'mysql:host=' . DB_HOST . ';port=' . $port . ';charset=' . DB_CHARSET,
+                DB_USER, DB_PASS,
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+            );
+            // Tenter de créer la base (ignoré si l'hébergeur l'interdit, ex. Railway)
+            try {
+                $pdo->exec('CREATE DATABASE IF NOT EXISTS `' . DB_NAME . '`'
+                    . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+            } catch (Throwable $ignore) { /* base déjà fournie par l'hébergeur */ }
+            $pdo->exec('USE `' . DB_NAME . '`');
+        } catch (Throwable $e) {
+            // Repli : connexion directe à la base déjà existante
+            $pdo = new PDO(
+                'mysql:host=' . DB_HOST . ';port=' . $port . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET,
+                DB_USER, DB_PASS,
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+            );
+        }
+
+        // 2) Créer les tables (sans CREATE DATABASE / USE, gérés ci-dessus)
         $schema = file_get_contents(__DIR__ . '/sql/schema.sql');
+        $schema = preg_replace('/^\s*CREATE DATABASE.*?;/mis', '', $schema);
+        $schema = preg_replace('/^\s*USE\s+`?[\w]+`?\s*;/mi', '', $schema);
         $pdo->exec($schema);
-        $pdo->exec('USE `' . DB_NAME . '`');
 
         // 3) Créer l'admin
         $adminPass = 'admin2026';

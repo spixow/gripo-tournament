@@ -1,0 +1,15 @@
+# Ne pas inclure dans l'image Docker
+.git
+.gitignore
+github
+*.token
+.env
+.env.*
+node_modules
+_*.php
+_*.log
+*.md
+
+# Preuves uploadées (filesystem éphémère sur Railway)
+uploads/*
+!uploads/.htaccess

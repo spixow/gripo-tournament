@@ -32,6 +32,21 @@ développée en **PHP / MySQL**, avec un fond animé **Three.js** et une interfa
 > cartes joueurs et de la phase finale, ouvrez `upgrade.php` une fois (ajoute les colonnes et la
 > table du bracket sans perte de données), puis supprimez-le.
 
+## ☁️ Déploiement Railway (Docker)
+
+Le projet contient un `Dockerfile` (PHP 8.1 + Apache + `pdo_mysql`) et lit la config DB
+depuis les variables d'environnement.
+
+1. Dans Railway, ajoutez un service **MySQL** au projet.
+2. Sur le service web, référencez les variables du MySQL (Railway les expose déjà) :
+   `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE`
+   (ou fournissez une seule `DATABASE_URL` / `MYSQL_URL`).
+3. Déployez (Railway construit l'image Docker et écoute sur le port fourni, ou 80).
+4. Ouvrez **une fois** `https://<votre-domaine>/install.php` pour créer les tables et les comptes,
+   notez les identifiants, puis **supprimez `install.php`** (ou protégez-le).
+5. Le dossier `uploads/` est éphémère sur Railway : les preuves images (désormais **facultatives**)
+   ne sont pas conservées entre les redéploiements. Pour du permanent, branchez un stockage externe.
+
 ## 🔑 Identifiants
 
 - **Administrateur** : `admin` / `admin2026`
