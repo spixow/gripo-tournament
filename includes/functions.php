@@ -337,38 +337,6 @@ function players_with_pending(): array
     return db()->query($sql)->fetchAll();
 }
 
-/**
- * Données de confrontation directe entre deux joueurs.
- * Retourne les matchs terminés qui les opposent + le bilan.
- */
-function h2h_data(int $aId, int $bId): array
-{
-    $sql = "SELECT m.*,
-                   h.display_name AS home_name, a.display_name AS away_name
-            FROM matches m
-            JOIN players h ON h.id = m.home_id
-            JOIN players a ON a.id = m.away_id
-            WHERE m.status = 'completed'
-              AND ((m.home_id = :a AND m.away_id = :b) OR (m.home_id = :b2 AND m.away_id = :a2))
-            ORDER BY m.round";
-    $stmt = db()->prepare($sql);
-    $stmt->execute([':a' => $aId, ':b' => $bId, ':a2' => $aId, ':b2' => $bId]);
-    $matches = $stmt->fetchAll();
-
-    $tally = ['a_win' => 0, 'b_win' => 0, 'draw' => 0, 'a_goals' => 0, 'b_goals' => 0];
-    foreach ($matches as $m) {
-        $aIsHome = (int)$m['home_id'] === $aId;
-        $aGoals = $aIsHome ? (int)$m['home_score'] : (int)$m['away_score'];
-        $bGoals = $aIsHome ? (int)$m['away_score'] : (int)$m['home_score'];
-        $tally['a_goals'] += $aGoals;
-        $tally['b_goals'] += $bGoals;
-        if ($aGoals > $bGoals)      $tally['a_win']++;
-        elseif ($aGoals < $bGoals)  $tally['b_win']++;
-        else                        $tally['draw']++;
-    }
-    return ['matches' => $matches, 'tally' => $tally];
-}
-
 /* -------------------- Forme récente d'un joueur -------------------- */
 
 /**

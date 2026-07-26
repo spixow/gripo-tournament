@@ -35,7 +35,6 @@ $navPending = ($currentUser && empty($currentUser['is_admin']))
                 <li class="nav-item"><a class="nav-link <?= $page==='home'?'active':'' ?>" href="index.php">Accueil</a></li>
                 <li class="nav-item"><a class="nav-link <?= $page==='standings'?'active':'' ?>" href="standings.php">Classement</a></li>
                 <li class="nav-item"><a class="nav-link <?= $page==='matches'?'active':'' ?>" href="matches.php">Matchs</a></li>
-                <li class="nav-item"><a class="nav-link <?= $page==='h2h'?'active':'' ?>" href="h2h.php">Face-à-face</a></li>
                 <li class="nav-item"><a class="nav-link <?= $page==='bracket'?'active':'' ?>" href="bracket.php">Phase finale</a></li>
                 <?php if ($currentUser): ?>
                     <li class="nav-item">

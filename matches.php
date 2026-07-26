@@ -5,6 +5,13 @@ $byRound = matches_by_round();
 $user = current_user();
 $latecomers = players_with_pending();
 $deadlinePassed = new DateTime() > new DateTime(APP_DEADLINE . ' ' . APP_DEADLINE_TIME);
+$allPlayers = all_players();
+$filterPlayer = (int)($_GET['player'] ?? 0) ?: null;
+$filterName = null;
+if ($filterPlayer) {
+    foreach ($allPlayers as $p) { if ((int)$p['id'] === $filterPlayer) { $filterName = $p['display_name']; break; } }
+    if (!$filterName) { $filterPlayer = null; }
+}
 require __DIR__ . '/includes/header.php';
 ?>
 <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
@@ -14,6 +21,36 @@ require __DIR__ . '/includes/header.php';
             <a href="#round-<?= (int)$r ?>" class="btn btn-outline-info">Round <?= (int)$r ?></a>
         <?php endforeach; ?>
     </div>
+</div>
+
+<!-- Filtre par joueur -->
+<div class="glass p-3 mb-4">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-12 col-md-5">
+            <label class="form-label small mb-1">🔎 Filtrer par joueur</label>
+            <select name="player" class="form-select" onchange="this.form.submit()">
+                <option value="0">— Tous les joueurs —</option>
+                <?php foreach ($allPlayers as $p): ?>
+                    <option value="<?= (int)$p['id'] ?>" <?= $filterPlayer===(int)$p['id']?'selected':'' ?>>
+                        <?= e($p['display_name']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="col-auto d-flex gap-2">
+            <?php if ($user && !$user['is_admin']): ?>
+                <a href="matches.php?player=<?= (int)$user['id'] ?>" class="btn btn-fifa">⚽ Mes matchs</a>
+            <?php endif; ?>
+            <?php if ($filterPlayer): ?>
+                <a href="matches.php" class="btn btn-outline-light">✕ Tout afficher</a>
+            <?php endif; ?>
+        </div>
+        <?php if ($filterPlayer): ?>
+            <div class="col-12">
+                <span class="small text-secondary">Filtre actif : <strong style="color:var(--txt)"><?= e($filterName) ?></strong></span>
+            </div>
+        <?php endif; ?>
+    </form>
 </div>
 
 <!-- Compte à rebours de la deadline -->
@@ -36,7 +73,7 @@ require __DIR__ . '/includes/header.php';
     <div class="card-header-fifa">🐌 Retardataires — joueurs avec des matchs à jouer</div>
     <div class="p-3 d-flex flex-wrap gap-2">
         <?php foreach ($latecomers as $lc): ?>
-            <a href="h2h.php?a=<?= (int)$lc['id'] ?>" class="text-decoration-none">
+            <a href="matches.php?player=<?= (int)$lc['id'] ?>" class="text-decoration-none">
                 <span class="latecomer-chip <?= $deadlinePassed ? 'late' : '' ?>">
                     <span class="avatar" style="background:<?= e($lc['avatar_color']) ?>;width:22px;height:22px;font-size:.68rem">
                         <?= e(mb_strtoupper(mb_substr($lc['display_name'],0,1))) ?>
@@ -50,7 +87,11 @@ require __DIR__ . '/includes/header.php';
 </div>
 <?php endif; ?>
 
-<?php foreach ($byRound as $round => $games):
+<?php foreach ($byRound as $round => $allGames):
+    $games = $filterPlayer
+        ? array_values(array_filter($allGames, fn($m) => (int)$m['home_id'] === $filterPlayer || (int)$m['away_id'] === $filterPlayer))
+        : $allGames;
+    if (empty($games)) continue;
     $roundPlayed = count(array_filter($games, fn($m) => $m['status']==='completed'));
     $roundTotal = count($games);
     $roundDone = $roundPlayed === $roundTotal;
